@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	
+	<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+	<meta content="utf-8" http-equiv="encoding">
+	
+	<title>Art demo</title>
+	
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r73/three.min.js"></script>
+	<script src="http://sdk.altvr.com/libs/altspace.js/0.10.0/altspace.min.js"></script>
+	
+	<style>
+		.msg{
+			
+			font-size: 48px;
+			padding: 30px;
+			text-align: center;
+			font-family: sans-serif;
+			font-weight: bold;
+		}
+		#loading{
+			background-color: #CC88FF;
+		}
+		#flatscreenError{
+			background-color: #FF88CC;
+			display: none;
+		}
+	</style>
+	
+</head>
+<body>
+	
+	
+	
+	<div id="loading" class="msg">
+		Loading...
+	</div>
+	<div id="flatscreenError" class="msg">
+		Beam this app to a 3D enclosure!
+	</div>
+	
+	
+	<script>
+	
+	
+	function altspaceSetup(){
+		
+		
+		altspace.getEnclosure().then(function(enclosureInfo){
+			
+			console.log("enclosure get");
+			
+			if (enclosureInfo.innerDepth == 1) {//if enclosure is flat
+				
+				altspace.getThreeJSRenderer().render(new THREE.Scene());//provide dummy 3D content so the beaming is possible
+				console.log("flat render initiated...");
+				
+				setTimeout(function(){
+					document.getElementById('loading').style.display = "none";
+					document.getElementById('flatscreenError').style.display = "block";//ask to be beamed someplace 3D
+					console.log("flat render safety delay complete.");
+				},1000);
+				
+				return;//stop completely; successful beam will be a fresh load
+				
+			}
+			
+			
+			function continueInEarnest(){
+				
+				console.log("READYSTATE MUST BE COMPLETE!");
+				
+				altspace.getThreeJSTrackingSkeleton().then(function(skeletonInfo){
+					altspace.getUser().then(function(userInfo){
+						
+						browserSetup(enclosureInfo,skeletonInfo,userInfo);
+						
+					});
+				});
+				
+			}
+			
+			function attemptContinue(){
+				if (document.readyState == "complete") continueInEarnest();
+			}
+			// both, right? in case it's already loaded? in which case the event will never go off anyway?
+			document.onreadystatechange = attemptContinue;
+			attemptContinue();
+			
+			
+			
+		});
+		
+		
+		
+		function quatDot(a,b) {
+			return a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w;
+		}
+		function quatDist(a,b) {
+			return (1-Math.abs(quatDot(a,b)));//should be *2 according to formula, but that gives answers from 0-2, and I'd rather 0-1 anyway?
+		}
+		
+		
+		
+		function browserSetup(enclosureInfo,skeletonInfo,userInfo){
+			
+			
+			
+			var renderer = altspace.getThreeJSRenderer();
+			var scene = new THREE.Scene();
+			
+			
+			var ribbonCanvas = document.createElement('canvas');
+			ribbonCanvas.width = ribbonCanvas.height = 8;
+			var ribbonCtx = ribbonCanvas.getContext('2d');
+			var ribbonGrad = ribbonCtx.createLinearGradient(0,0,0,ribbonCanvas.height);
+			ribbonGrad.addColorStop(1,"#0B0");
+			ribbonGrad.addColorStop(0,"#0F8");
+			ribbonCtx.fillStyle = ribbonGrad;
+			ribbonCtx.fillRect(0,0,8,8);
+			var dotMat = new THREE.MeshBasicMaterial({map:new THREE.Texture(ribbonCanvas)});
+			dotMat.side = THREE.DoubleSide;
+			
+			
+			
+			var ppm = enclosureInfo.pixelsPerMeter;
+			console.log("ENCLOSURE SCALE:",ppm);
+			
+			
+			function toWorldUnits(x){
+				return x*ppm /17.873589;//hardcoded divisor; numbers were tuned to that room's ppm
+			}
+			
+			
+			function isFingerPointing(fingerName,handName){
+				
+				var baseJoint = skeletonInfo.getJoint(fingerName,handName,0);
+				var firstJoint = skeletonInfo.getJoint(fingerName,handName,3);
+				
+				var bendAmt = quatDist(baseJoint.quaternion,firstJoint.quaternion);
+				
+				return (bendAmt < 0.03);
+				
+			}
+			
+			function offPtInDir(pt,dir,dist){
+				var off = new THREE.Vector3(0,0,dist);
+				off.applyQuaternion(dir);
+				off.add(pt);
+				return off;
+			}
+			function getFingertipPos(fingerName,handName,posOut,quatOut){
+				
+				var lastJointIndex = 3;//check if this needs to be changed for thumb, presumably?
+				
+				
+				// finger joints aren't NECESSARILY the same length but it's the right ballpark
+				
+				var midJoint = skeletonInfo.getJoint(fingerName,handName,lastJointIndex-1);
+				var lastJoint = skeletonInfo.getJoint(fingerName,handName,lastJointIndex);
+				
+				var jointLength = midJoint.position.distanceTo(lastJoint.position);
+				
+				posOut.copy(offPtInDir(lastJoint.position,lastJoint.quaternion,jointLength));
+				quatOut.copy(lastJoint.quaternion);
+				
+			}
+			
+			
+			
+			var pinchDebugGeom = new THREE.SphereGeometry(0.2);
+			var pinchDebugMat = new THREE.MeshBasicMaterial({color:0xFF00FF});
+			var pinchDebugMeshes = {
+				'Left':new THREE.Mesh(pinchDebugGeom,pinchDebugMat),
+				'Right':new THREE.Mesh(pinchDebugGeom,pinchDebugMat)
+			}
+			/*
+			scene.add(pinchDebugMeshes['Left']);
+			scene.add(pinchDebugMeshes['Right']);
+			*/
+			
+			function getHandPinch(handName,threshhold){
+				
+				var indexPos = new THREE.Vector3();
+				var thumbPos = new THREE.Vector3();
+				var dummyQuat = new THREE.Quaternion();
+				
+				getFingertipPos('Index',handName,indexPos,dummyQuat);
+				getFingertipPos('Thumb',handName,thumbPos,dummyQuat);
+				
+				var pinchGap = indexPos.distanceTo(thumbPos);
+				
+				if (pinchGap < toWorldUnits(threshhold)) {
+					
+					/*
+					return new THREE.Vector3(
+						(indexPos.x+thumbPos.x)/2,
+						(indexPos.y+thumbPos.y)/2,
+						(indexPos.z+thumbPos.z)/2
+					);
+					*/
+					
+					// turns out that opening your fingers moves your index farther than your thumb,
+					// so to avoid drift when releasing, let's assume pinches are a fixed point away from your palm
+					
+					var palmJoint = skeletonInfo.getJoint('Hand',handName,0);
+					var pinchPoint = new THREE.Vector3(
+						toWorldUnits(0.5),
+						toWorldUnits(-1),
+						toWorldUnits(1.5)
+					);
+					if (handName == "Left") pinchPoint.x *= -1;
+					pinchPoint.applyQuaternion(palmJoint.quaternion);
+					pinchPoint.add(palmJoint.position);
+					
+					pinchDebugMeshes[handName].position.copy(pinchPoint);
+					
+					return pinchPoint;
+					
+				} else {
+					return false;
+				}
+				
+			}
+			
+			
+			
+			
+			
+			var debugSpheres = 0;
+			var lastPos = new THREE.Vector3(0,0,0);
+			var lastPosOther = null;
+			
+			
+			
+			var cubeCanvas = document.createElement('canvas');
+			cubeCanvas.width = cubeCanvas.height = 16;
+			var cubeCtx = cubeCanvas.getContext('2d');
+			cubeCtx.fillStyle = "#00F";
+			cubeCtx.fillRect(0,0,cubeCanvas.width,cubeCanvas.height);
+			var cubeGrad = cubeCtx.createLinearGradient(0,0,0,cubeCanvas.height);
+			cubeGrad.addColorStop(0,"rgba(255,255,255,0.0)");
+			cubeGrad.addColorStop(1,"rgba(255,255,255,0.8)");
+			cubeCtx.fillStyle = cubeGrad;
+			cubeCtx.fillRect(0,0,cubeCanvas.width,cubeCanvas.height);
+			
+			var cubeInProgress = null;
+			var cubeGeom = new THREE.SphereGeometry(0.5,16,16);//I'm leaving 'cube' as the varname for now but yeah it's a sphere
+			var cubeMat = new THREE.MeshBasicMaterial({map:new THREE.Texture(cubeCanvas)});
+			
+			
+			function frameFunc() {
+				
+				requestAnimationFrame(frameFunc);
+				
+				var dirty = false;
+				
+				if (skeletonInfo.getJoint('Hand','Right')) {
+					
+					
+					if (isFingerPointing('Index','Right') && !isFingerPointing('Ring','Right')) {
+						
+						var fingerPos = new THREE.Vector3();
+						var fingerQuat = new THREE.Quaternion();
+						getFingertipPos('Index','Right',fingerPos,fingerQuat);
+						
+						if (fingerPos.distanceTo(lastPos) > toWorldUnits(0.1)) {
+							
+							var otherPos = offPtInDir(fingerPos,fingerQuat,toWorldUnits(0.5));
+							
+							if (lastPosOther) {
+								
+								var newGeom = new THREE.Geometry();
+								newGeom.vertices.push( lastPos, lastPosOther, fingerPos, otherPos );
+								newGeom.faces.push( new THREE.Face3(0,1,2), new THREE.Face3(2,1,3) );
+								newGeom.faceVertexUvs = [[
+									[new THREE.Vector2(0,0),new THREE.Vector2(0,1),new THREE.Vector2(1,0)],
+									[new THREE.Vector2(1,0),new THREE.Vector2(0,1),new THREE.Vector2(1,1)]
+								]];
+								newGeom.computeVertexNormals();
+								
+								var newMesh = new THREE.Mesh( newGeom, dotMat );
+								scene.add(newMesh);
+								
+								debugSpheres++;
+								//console.log(debugSpheres);
+								
+							}
+							
+							lastPos = fingerPos;
+							lastPosOther = otherPos;
+							
+						}
+						
+					} else {
+						lastPosOther = null;
+					}
+					
+					
+					
+					if (skeletonInfo.getJoint('Hand','Left')) {
+						
+						
+						var pinchThreshhold = cubeInProgress ? 1 : 1;//looser threshhold for release than for start, maybe?
+						var rightPinch = getHandPinch('Right',pinchThreshhold);
+						var leftPinch = getHandPinch('Left',pinchThreshhold);
+						
+						if (rightPinch && leftPinch) {
+							
+							var pinchSpace = rightPinch.distanceTo(leftPinch);
+							
+							if (!cubeInProgress && (pinchSpace < toWorldUnits(1))) {
+								
+								cubeInProgress = new THREE.Mesh(cubeGeom,cubeMat);
+								scene.add(cubeInProgress);
+								
+							}
+							
+							if (cubeInProgress) {
+								
+								cubeInProgress.position.set(
+									(rightPinch.x + leftPinch.x)/2,
+									(rightPinch.y + leftPinch.y)/2,
+									(rightPinch.z + leftPinch.z)/2
+								);
+								cubeInProgress.scale.set(pinchSpace,pinchSpace,pinchSpace);
+								
+							}
+							
+						} else {
+							
+							if (cubeInProgress) {
+								cubeInProgress = null;
+							}
+							
+						}
+						
+						
+						
+						
+					}
+					
+					
+				}
+				
+				renderer.render(scene);
+				
+			}
+			
+			frameFunc();
+			
+			document.getElementById('loading').style.display = "none";
+			
+		}
+		
+		
+	}
+	
+	altspaceSetup();
+	
+	
+	</script>
+	
+	
+	
+</body>
+</html>
