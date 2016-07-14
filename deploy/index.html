@@ -9,7 +9,7 @@
 	<title>Art demo</title>
 	
 	<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r73/three.min.js"></script>
-	<script src="http://sdk.altvr.com/libs/altspace.js/0.10.0/altspace.min.js"></script>
+	<script src="http://sdk.altvr.com/libs/altspace.js/0.13.2/altspace.min.js"></script>
 	
 	<style>
 		.msg{
@@ -45,11 +45,14 @@
 	<script>
 	
 	
+	var enclosureInfo,skeletonInfo,userInfo,firebaseInfo;
+	
 	
 	function altspaceSetup(){
 		
 		
-		altspace.getEnclosure().then(function(enclosureInfo){
+		altspace.getEnclosure().then(function(_enclosureInfo){
+			enclosureInfo = _enclosureInfo;
 			
 			console.log("enclosure get");
 			
@@ -69,23 +72,37 @@
 			}
 			
 			
-			function continueInEarnest(){
-				
-				console.log("READYSTATE MUST BE COMPLETE!");
-				
-				altspace.getThreeJSTrackingSkeleton().then(function(skeletonInfo){
-					altspace.getUser().then(function(userInfo){
-						
-						browserSetup(enclosureInfo,skeletonInfo,userInfo);
-						
-					});
-				});
-				
-			}
 			
 			function attemptContinue(){
-				if (document.readyState == "complete") continueInEarnest();
+				if (document.readyState == "complete") {
+					
+					console.log("READYSTATE MUST BE COMPLETE!");
+					
+					altspace.getThreeJSTrackingSkeleton().then(function(_skeletonInfo){
+						skeletonInfo = _skeletonInfo;
+						
+						altspace.getUser().then(function(_userInfo){
+							userInfo = _userInfo;
+							
+							altspace.utilities.sync.connect({
+								authorId:'ravenworks',
+								appId:'sculpTogether',
+								baseRefUrl:"https://ravenworks-altspace-test.firebaseio.com"
+							}).then(function(_firebaseInfo){
+								firebaseInfo = _firebaseInfo;
+								
+								setTimeout(browserSetup,0);
+								
+							});
+							
+							
+							
+						});
+					});
+					
+				}
 			}
+			
 			// both, right? in case it's already loaded? in which case the event will never go off anyway?
 			document.onreadystatechange = attemptContinue;
 			attemptContinue();
@@ -105,12 +122,14 @@
 		
 		
 		
-		function browserSetup(enclosureInfo,skeletonInfo,userInfo){
+		function browserSetup(){
 			
 			
 			
 			var renderer = altspace.getThreeJSRenderer();
 			var scene = new THREE.Scene();
+			
+			
 			
 			
 			var ribbonCanvas = document.createElement('canvas');
@@ -121,8 +140,68 @@
 			ribbonGrad.addColorStop(0,"#0F8");
 			ribbonCtx.fillStyle = ribbonGrad;
 			ribbonCtx.fillRect(0,0,8,8);
-			var dotMat = new THREE.MeshBasicMaterial({map:new THREE.Texture(ribbonCanvas)});
-			dotMat.side = THREE.DoubleSide;
+			var ribbonMat = new THREE.MeshBasicMaterial({map:new THREE.Texture(ribbonCanvas)});
+			ribbonMat.side = THREE.DoubleSide;
+			
+			
+			
+			
+			var syncInstance = firebaseInfo.instance;
+			
+			var artServer = syncInstance.child('art');
+			var usersServer = artServer.child('users');
+			usersServer.on("child_added",function(snapshot,prevChildKey){
+				
+				
+				snapshot.ref().child("strokes").on("child_added",function(snapshot,prevChildKey){
+					
+					
+					var curStrokeInfo = snapshot.val();
+					
+					var lastPointKey = null;
+					var lastPointInfo = null;
+					snapshot.ref().child("points").on("child_added",function(snapshot,prevChildKey){
+						
+						var curPointInfo = snapshot.val();
+						
+						if (lastPointKey) {
+							
+							if (prevChildKey != lastPointKey) console.log("LAST CHILD KEY MISMATCH?????");
+							
+							var newGeom = new THREE.Geometry();
+							newGeom.vertices.push(
+								lastPointInfo.vertices[0], lastPointInfo.vertices[1],
+								curPointInfo.vertices[0], curPointInfo.vertices[1]
+							);
+							newGeom.faces.push( new THREE.Face3(0,1,2), new THREE.Face3(2,1,3) );
+							newGeom.faceVertexUvs = [[
+								[new THREE.Vector2(0,0),new THREE.Vector2(0,1),new THREE.Vector2(1,0)],
+								[new THREE.Vector2(1,0),new THREE.Vector2(0,1),new THREE.Vector2(1,1)]
+							]];
+							newGeom.computeVertexNormals();
+							
+							var newMesh = new THREE.Mesh( newGeom, ribbonMat );
+							scene.add(newMesh);
+							
+						}
+						
+						lastPointKey = snapshot.key();
+						lastPointInfo = curPointInfo;
+						
+					});
+					
+					snapshot.ref().child("deletions").on("child_added",function(snapshot,prevChildKey){
+						
+					});
+					
+					
+				});
+				
+				
+			});
+			
+			
+			
 			
 			
 			
@@ -177,10 +256,10 @@
 				'Left':new THREE.Mesh(pinchDebugGeom,pinchDebugMat),
 				'Right':new THREE.Mesh(pinchDebugGeom,pinchDebugMat)
 			}
-			/*
-			scene.add(pinchDebugMeshes['Left']);
-			scene.add(pinchDebugMeshes['Right']);
-			*/
+			
+			//scene.add(pinchDebugMeshes['Left']);
+			//scene.add(pinchDebugMeshes['Right']);
+			
 			
 			function getHandPinch(handName,threshhold){
 				
@@ -195,13 +274,12 @@
 				
 				if (pinchGap < toWorldUnits(threshhold)) {
 					
-					/*
-					return new THREE.Vector3(
-						(indexPos.x+thumbPos.x)/2,
-						(indexPos.y+thumbPos.y)/2,
-						(indexPos.z+thumbPos.z)/2
-					);
-					*/
+					
+					//return new THREE.Vector3(
+					//	(indexPos.x+thumbPos.x)/2,
+					//	(indexPos.y+thumbPos.y)/2,
+					//	(indexPos.z+thumbPos.z)/2
+					//);
 					
 					// turns out that opening your fingers moves your index farther than your thumb,
 					// so to avoid drift when releasing, let's assume pinches are a fixed point away from your palm
@@ -230,10 +308,11 @@
 			
 			
 			
-			var debugSpheres = 0;
-			var lastPos = new THREE.Vector3(0,0,0);
-			var lastPosOther = null;
+			var myDrawingServer = usersServer.child(userInfo.userId);
+			var myStrokesServer = myDrawingServer.child('strokes');
 			
+			var curPointsServer = null;
+			var lastPos = null;
 			
 			
 			var cubeCanvas = document.createElement('canvas');
@@ -256,47 +335,38 @@
 				
 				requestAnimationFrame(frameFunc);
 				
-				var dirty = false;
 				
 				if (skeletonInfo.getJoint('Hand','Right')) {
 					
 					
 					if (isFingerPointing('Index','Right') && !isFingerPointing('Ring','Right')) {
 						
+						if (!curPointsServer) {
+							
+							var curStrokeServer = myStrokesServer.push();
+							curPointsServer = curStrokeServer.child('points');
+							
+						}
+						
 						var fingerPos = new THREE.Vector3();
 						var fingerQuat = new THREE.Quaternion();
 						getFingertipPos('Index','Right',fingerPos,fingerQuat);
 						
-						if (fingerPos.distanceTo(lastPos) > toWorldUnits(0.1)) {
+						if ( !lastPos || (fingerPos.distanceTo(lastPos) > toWorldUnits(0.1)) ) {
 							
 							var otherPos = offPtInDir(fingerPos,fingerQuat,toWorldUnits(0.5));
 							
-							if (lastPosOther) {
-								
-								var newGeom = new THREE.Geometry();
-								newGeom.vertices.push( lastPos, lastPosOther, fingerPos, otherPos );
-								newGeom.faces.push( new THREE.Face3(0,1,2), new THREE.Face3(2,1,3) );
-								newGeom.faceVertexUvs = [[
-									[new THREE.Vector2(0,0),new THREE.Vector2(0,1),new THREE.Vector2(1,0)],
-									[new THREE.Vector2(1,0),new THREE.Vector2(0,1),new THREE.Vector2(1,1)]
-								]];
-								newGeom.computeVertexNormals();
-								
-								var newMesh = new THREE.Mesh( newGeom, dotMat );
-								scene.add(newMesh);
-								
-								debugSpheres++;
-								//console.log(debugSpheres);
-								
-							}
-							
-							lastPos = fingerPos;
-							lastPosOther = otherPos;
+							var newPoint = curPointsServer.push();
+							newPoint.set({vertices:[fingerPos,otherPos]});
 							
 						}
 						
+						lastPos = fingerPos;
+						
 					} else {
-						lastPosOther = null;
+						
+						curPointsServer = null;
+						
 					}
 					
 					
