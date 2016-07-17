@@ -143,6 +143,36 @@
 			var ribbonMat = new THREE.MeshBasicMaterial({map:new THREE.Texture(ribbonCanvas)});
 			ribbonMat.side = THREE.DoubleSide;
 			
+			var cubeCanvas = document.createElement('canvas');
+			cubeCanvas.width = cubeCanvas.height = 16;
+			var cubeCtx = cubeCanvas.getContext('2d');
+			cubeCtx.fillStyle = "#00F";
+			cubeCtx.fillRect(0,0,cubeCanvas.width,cubeCanvas.height);
+			var cubeGrad = cubeCtx.createLinearGradient(0,0,0,cubeCanvas.height);
+			cubeGrad.addColorStop(0,"rgba(255,255,255,0.0)");
+			cubeGrad.addColorStop(1,"rgba(255,255,255,0.8)");
+			cubeCtx.fillStyle = cubeGrad;
+			cubeCtx.fillRect(0,0,cubeCanvas.width,cubeCanvas.height);
+			var sphereMat = new THREE.MeshBasicMaterial({map:new THREE.Texture(cubeCanvas)});
+			
+			
+			
+			var primGeoms = [
+				new THREE.SphereGeometry(0.5,16,16),
+				new THREE.BoxGeometry(1,1,1)
+			];
+			var primMats = [
+				sphereMat,
+				sphereMat//whatever for now
+			];
+			
+			
+			
+			function applyTransformFromArray(obj,transList){
+				obj.position.set(transList[0],transList[1],transList[2]);
+				obj.rotation.set(transList[3],transList[4],transList[5]);
+				obj.scale.set(transList[6],transList[7],transList[8]);
+			}
 			
 			
 			
@@ -166,7 +196,7 @@
 						
 						if (lastPointKey) {
 							
-							if (prevChildKey != lastPointKey) console.log("LAST CHILD KEY MISMATCH?????");
+							if (prevChildKey != lastPointKey) console.log("on strokes: LAST CHILD KEY MISMATCH?????");
 							
 							var newGeom = new THREE.Geometry();
 							newGeom.vertices.push(
@@ -196,6 +226,39 @@
 					
 					
 				});
+				
+				
+				
+				
+				var myPrimsList = {};
+				
+				snapshot.ref().child("prims").on("child_added",function(snapshot,prevChildKey){
+					
+					var primSource = snapshot.val();
+					
+					var newPrimInfo = {};
+					
+					var primMesh = new THREE.Mesh( primGeoms[primSource.typeIndex], primMats[primSource.typeIndex] );
+					applyTransformFromArray(primMesh,primSource.transform);
+					scene.add(primMesh);
+					newPrimInfo.mesh = primMesh;
+					
+					myPrimsList[snapshot.key()] = newPrimInfo;
+					
+				});
+				snapshot.ref().child("prims").on("child_changed",function(snapshot,prevChildKey){
+					
+					applyTransformFromArray(myPrimsList[snapshot.key()].mesh,snapshot.val().transform);
+					
+				});
+				snapshot.ref().child("prims").on("child_removed",function(deadSnapshot){
+					
+					var key = deadSnapshot.key();
+					scene.remove(myPrimsList[key].mesh);
+					delete myPrimsList[key];
+					
+				});
+				
 				
 				
 			});
@@ -310,25 +373,16 @@
 			
 			var myDrawingServer = usersServer.child(userInfo.userId);
 			var myStrokesServer = myDrawingServer.child('strokes');
+			var myPrimsServer = myDrawingServer.child('prims');
 			
 			var curPointsServer = null;
 			var lastPos = null;
 			
 			
-			var cubeCanvas = document.createElement('canvas');
-			cubeCanvas.width = cubeCanvas.height = 16;
-			var cubeCtx = cubeCanvas.getContext('2d');
-			cubeCtx.fillStyle = "#00F";
-			cubeCtx.fillRect(0,0,cubeCanvas.width,cubeCanvas.height);
-			var cubeGrad = cubeCtx.createLinearGradient(0,0,0,cubeCanvas.height);
-			cubeGrad.addColorStop(0,"rgba(255,255,255,0.0)");
-			cubeGrad.addColorStop(1,"rgba(255,255,255,0.8)");
-			cubeCtx.fillStyle = cubeGrad;
-			cubeCtx.fillRect(0,0,cubeCanvas.width,cubeCanvas.height);
 			
 			var cubeInProgress = null;
-			var cubeGeom = new THREE.SphereGeometry(0.5,16,16);//I'm leaving 'cube' as the varname for now but yeah it's a sphere
-			var cubeMat = new THREE.MeshBasicMaterial({map:new THREE.Texture(cubeCanvas)});
+			
+			
 			
 			
 			function frameFunc() {
@@ -382,21 +436,29 @@
 							
 							var pinchSpace = rightPinch.distanceTo(leftPinch);
 							
+							var dataToUpdate = {};
+							
 							if (!cubeInProgress && (pinchSpace < toWorldUnits(1))) {
 								
-								cubeInProgress = new THREE.Mesh(cubeGeom,cubeMat);
-								scene.add(cubeInProgress);
+								cubeInProgress = myPrimsServer.push();
+								dataToUpdate.typeIndex = 0;//hardcoded for now
 								
 							}
 							
 							if (cubeInProgress) {
 								
-								cubeInProgress.position.set(
+								dataToUpdate.transform = [
+									// position:
 									(rightPinch.x + leftPinch.x)/2,
 									(rightPinch.y + leftPinch.y)/2,
-									(rightPinch.z + leftPinch.z)/2
-								);
-								cubeInProgress.scale.set(pinchSpace,pinchSpace,pinchSpace);
+									(rightPinch.z + leftPinch.z)/2,
+									// rotation:
+									0,0,0,
+									//scale:
+									pinchSpace,pinchSpace,pinchSpace
+								];
+								
+								cubeInProgress.update(dataToUpdate);
 								
 							}
 							
