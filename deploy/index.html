@@ -9,7 +9,7 @@
 	<title>Art demo</title>
 	
 	<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r73/three.min.js"></script>
-	<script src="http://sdk.altvr.com/libs/altspace.js/0.13.2/altspace.min.js"></script>
+	<script src="http://sdk.altvr.com/libs/altspace.js/0.14.1/altspace.min.js"></script>
 	
 	<style>
 		.msg{
@@ -45,7 +45,17 @@
 	<script>
 	
 	
-	var enclosureInfo,skeletonInfo,userInfo,firebaseInfo;
+	function fullPath(filename,withSearch){
+		var curPath = location.pathname;
+		if (!curPath.endsWith('/')) curPath = location.pathname.split('/').slice(0, -1).join('/') + '/';
+		curPath = location.origin + curPath + filename;
+		if (withSearch) curPath += location.search;
+		return curPath;
+	}
+	
+	
+	
+	var enclosureInfo,skeletonInfo,userInfo,popupInfo,firebaseInfo;
 	
 	
 	function altspaceSetup(){
@@ -84,18 +94,26 @@
 						altspace.getUser().then(function(_userInfo){
 							userInfo = _userInfo;
 							
-							altspace.utilities.sync.connect({
-								authorId:'ravenworks',
-								appId:'sculpTogether',
-								baseRefUrl:"https://ravenworks-altspace-test.firebaseio.com"
-							}).then(function(_firebaseInfo){
-								firebaseInfo = _firebaseInfo;
+							altspace.open(
+								fullPath('popup.html',true),
+								'_experience',
+								{ icon:fullPath('popup_icon.png',false), hidden:true }
+							).then(function(_popupInfo){
 								
-								setTimeout(browserSetup,0);
+								popupInfo = _popupInfo;
+								
+								altspace.utilities.sync.connect({
+									authorId:'ravenworks',
+									appId:'sculpTogether',
+									baseRefUrl:"https://ravenworks-altspace-test.firebaseio.com"
+								}).then(function(_firebaseInfo){
+									firebaseInfo = _firebaseInfo;
+									
+									setTimeout(browserSetup,0);
+									
+								});
 								
 							});
-							
-							
 							
 						});
 					});
