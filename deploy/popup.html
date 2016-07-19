@@ -1,6 +1,15 @@
 <html>
 <head>
+	
+	<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+	<meta content="utf-8" http-equiv="encoding">
+	
 	<title>Sculpting Palette</title>
+	
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r73/three.min.js"></script>
+	<script src="http://sdk.altvr.com/libs/altspace.js/0.14.1/altspace.min.js"></script>
+	
+	
 	<style>
 		body{
 			background-color: #444;
@@ -106,68 +115,116 @@
 	
 	<script>
 		
-		function setUpSlider(id){
+		
+		var now = new Date();
+		console.log("start time",now.getHours()+":"+now.getMinutes()+":"+now.getSeconds());
+		
+		
+		var userInfo, firebaseInfo;
+		
+		altspace.getUser().then(function(_userInfo){
+			userInfo = _userInfo;
 			
-			var sliderDiv = document.getElementById(id+"Slider");
-			var sliderDisp = document.getElementById(id+"Marker");
-			
-			var sliderMax = sliderDiv.clientHeight;
-			
-			var fracVal = 0;
-			
-			sliderDiv.addEventListener('mousedown',function(e){
+			altspace.utilities.sync.connect({
+				authorId:'ravenworks',
+				appId:'sculpTogether',
+				baseRefUrl:"https://ravenworks-altspace-test.firebaseio.com"
+			}).then(function(_firebaseInfo){
+				firebaseInfo = _firebaseInfo;
 				
-				var oldY = -99999;
-				
-				function moveFunc(e){
-					var newY = e.pageY-sliderDiv.offsetTop;
-					newY = Math.max(0,newY);
-					newY = Math.min(newY,sliderMax);
-					if (newY == oldY) return;
-					
-					fracVal = newY/sliderMax;
-					sliderDisp.style.top = newY-1;
-					
-					refreshColDisplay(false);
-					
-					oldY = newY;
-				}
-				function releaseFunc(e){
-					document.body.removeEventListener('mousemove',moveFunc);
-					document.body.removeEventListener('mouseup',releaseFunc);
-					refreshColDisplay(true);
-				}
-				
-				moveFunc(e);
-				document.body.addEventListener('mousemove',moveFunc);
-				document.body.addEventListener('mouseup',releaseFunc);
+				setTimeout(browserSetup,0);
 				
 			});
 			
-			var info = {};
-			info.getVal = function(){
-				return fracVal;
-			}
-			
-			return info;
-			
-		}
-		var sliderH = setUpSlider("hue");
-		var sliderS = setUpSlider("sat");
-		var sliderL = setUpSlider("lit");
+		});
 		
-		var sDisp = document.getElementById("satSliderGradBack");
-		var lDisp = document.getElementById("litSliderGradBack");
-		var cDisp = document.getElementById("colResult");
-		function refreshColDisplay(tellServer){
-			var h = sliderH.getVal();
-			var s = sliderS.getVal();
-			var l = sliderL.getVal();
-			sDisp.style.backgroundColor = "hsl("+(h*360)+",100%,50%)";
-			lDisp.style.backgroundColor = "hsl("+(h*360)+","+((1-s)*100)+"%,50%)";
-			cDisp.style.backgroundColor = "hsl("+(h*360)+","+((1-s)*100)+"%,"+((1-l)*100)+"%)";
+		
+		
+		
+		function browserSetup(){
+			
+			var syncInstance = firebaseInfo.instance;
+			var artServer = syncInstance.child('art');
+			var allUsersServer = artServer.child('users');
+			var myUserServer = allUsersServer.child(userInfo.userId);
+			var myNextColServer = myUserServer.child('nextCol');
+			
+			function setUpSlider(id,defaultVal){
+				
+				var sliderDiv = document.getElementById(id+"Slider");
+				var sliderDisp = document.getElementById(id+"Marker");
+				
+				var sliderMax = sliderDiv.clientHeight;
+				
+				var fracVal;
+				function newFracVal(newY){
+					fracVal = newY/sliderMax;
+					sliderDisp.style.top = newY-1;
+				}
+				newFracVal(defaultVal*sliderMax);
+				
+				sliderDiv.addEventListener('mousedown',function(e){
+					
+					var oldY = -99999;
+					
+					function moveFunc(e){
+						var newY = e.pageY-sliderDiv.offsetTop;
+						newY = Math.max(0,newY);
+						newY = Math.min(newY,sliderMax);
+						if (newY == oldY) return;
+						
+						newFracVal(newY);
+						refreshColDisplay(false);
+						
+						oldY = newY;
+					}
+					function releaseFunc(e){
+						document.body.removeEventListener('mousemove',moveFunc);
+						document.body.removeEventListener('mouseup',releaseFunc);
+						refreshColDisplay(true);
+					}
+					
+					moveFunc(e);
+					document.body.addEventListener('mousemove',moveFunc);
+					document.body.addEventListener('mouseup',releaseFunc);
+					
+				});
+				
+				var info = {};
+				info.getVal = function(){
+					return fracVal;
+				}
+				
+				return info;
+				
+			}
+			var sliderH = setUpSlider("hue",Math.random());
+			var sliderS = setUpSlider("sat",0);
+			var sliderL = setUpSlider("lit",0.5);
+			
+			var sDisp = document.getElementById("satSliderGradBack");
+			var lDisp = document.getElementById("litSliderGradBack");
+			var cDisp = document.getElementById("colResult");
+			function refreshColDisplay(tellServer){
+				
+				var h = sliderH.getVal();
+				var s = sliderS.getVal();
+				var l = sliderL.getVal();
+				
+				sDisp.style.backgroundColor = "hsl("+(h*360)+",100%,50%)";
+				lDisp.style.backgroundColor = "hsl("+(h*360)+","+((1-s)*100)+"%,50%)";
+				cDisp.style.backgroundColor = "hsl("+(h*360)+","+((1-s)*100)+"%,"+((1-l)*100)+"%)";
+				
+				if (tellServer) {
+					var newColVal = cDisp.style.backgroundColor;
+					console.log("sending new color choice val of",newColVal);
+					myNextColServer.set(newColVal);
+				}
+				
+			}
+			refreshColDisplay(true);
+			
 		}
-		refreshColDisplay();
 		
 	</script>
 	

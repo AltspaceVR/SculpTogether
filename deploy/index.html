@@ -154,12 +154,10 @@
 			ribbonCanvas.width = ribbonCanvas.height = 8;
 			var ribbonCtx = ribbonCanvas.getContext('2d');
 			var ribbonGrad = ribbonCtx.createLinearGradient(0,0,0,ribbonCanvas.height);
-			ribbonGrad.addColorStop(1,"#0B0");
-			ribbonGrad.addColorStop(0,"#0F8");
+			ribbonGrad.addColorStop(1,"#FFF");
+			ribbonGrad.addColorStop(0,"#AAA");
 			ribbonCtx.fillStyle = ribbonGrad;
 			ribbonCtx.fillRect(0,0,8,8);
-			var ribbonMat = new THREE.MeshBasicMaterial({map:new THREE.Texture(ribbonCanvas)});
-			ribbonMat.side = THREE.DoubleSide;
 			
 			var cubeCanvas = document.createElement('canvas');
 			cubeCanvas.width = cubeCanvas.height = 16;
@@ -206,6 +204,13 @@
 					
 					var curStrokeInfo = snapshot.val();
 					
+					var ribbonMat = new THREE.MeshBasicMaterial({
+						map:new THREE.Texture(ribbonCanvas),
+						color:new THREE.Color(curStrokeInfo.color)
+					});
+					ribbonMat.side = THREE.DoubleSide;
+					
+					
 					var lastPointKey = null;
 					var lastPointInfo = null;
 					snapshot.ref().child("points").on("child_added",function(snapshot,prevChildKey){
@@ -227,6 +232,8 @@
 								[new THREE.Vector2(1,0),new THREE.Vector2(0,1),new THREE.Vector2(1,1)]
 							]];
 							newGeom.computeVertexNormals();
+							
+							
 							
 							var newMesh = new THREE.Mesh( newGeom, ribbonMat );
 							scene.add(newMesh);
@@ -276,6 +283,7 @@
 					delete myPrimsList[key];
 					
 				});
+				
 				
 				
 				
@@ -396,9 +404,18 @@
 			var curPointsServer = null;
 			var lastPos = null;
 			
-			
-			
 			var cubeInProgress = null;
+			
+			var nextColVal = {h:0,s:0,l:0};//should be overwritten by firebase almost immediately, but at least it won't crash if not
+			myDrawingServer.child("nextCol").on("value",function(snapshot){
+				
+				var newVal = snapshot.val();
+				console.log("NEW COLOR VAL CHOICE:",newVal);
+				if (!newVal) return;
+				
+				nextColVal = newVal;
+				
+			});
 			
 			
 			
@@ -415,7 +432,7 @@
 						
 						if (!curPointsServer) {
 							
-							var curStrokeServer = myStrokesServer.push();
+							var curStrokeServer = myStrokesServer.push({color:nextColVal});
 							curPointsServer = curStrokeServer.child('points');
 							
 						}
