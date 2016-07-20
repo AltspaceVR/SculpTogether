@@ -157,19 +157,16 @@
 			ribbonGrad.addColorStop(1,"#FFF");
 			ribbonGrad.addColorStop(0,"#AAA");
 			ribbonCtx.fillStyle = ribbonGrad;
-			ribbonCtx.fillRect(0,0,8,8);
+			ribbonCtx.fillRect(0,0,ribbonCanvas.width,ribbonCanvas.height);
 			
-			var cubeCanvas = document.createElement('canvas');
-			cubeCanvas.width = cubeCanvas.height = 16;
-			var cubeCtx = cubeCanvas.getContext('2d');
-			cubeCtx.fillStyle = "#00F";
-			cubeCtx.fillRect(0,0,cubeCanvas.width,cubeCanvas.height);
-			var cubeGrad = cubeCtx.createLinearGradient(0,0,0,cubeCanvas.height);
-			cubeGrad.addColorStop(0,"rgba(255,255,255,0.0)");
-			cubeGrad.addColorStop(1,"rgba(255,255,255,0.8)");
-			cubeCtx.fillStyle = cubeGrad;
-			cubeCtx.fillRect(0,0,cubeCanvas.width,cubeCanvas.height);
-			var sphereMat = new THREE.MeshBasicMaterial({map:new THREE.Texture(cubeCanvas)});
+			var sphereCanvas = document.createElement('canvas');
+			sphereCanvas.width = sphereCanvas.height = 16;
+			var sphereCtx = sphereCanvas.getContext('2d');
+			var sphereGrad = sphereCtx.createLinearGradient(0,0,0,sphereCanvas.height);
+			sphereGrad.addColorStop(0,"#FFF");
+			sphereGrad.addColorStop(1,"#444S");
+			sphereCtx.fillStyle = sphereGrad;
+			sphereCtx.fillRect(0,0,sphereCanvas.width,sphereCanvas.height);
 			
 			
 			
@@ -177,9 +174,9 @@
 				new THREE.SphereGeometry(0.5,16,16),
 				new THREE.BoxGeometry(1,1,1)
 			];
-			var primMats = [
-				sphereMat,
-				sphereMat//whatever for now
+			var primTexs = [
+				new THREE.Texture(sphereCanvas),
+				new THREE.Texture(sphereCanvas)
 			];
 			
 			
@@ -263,7 +260,13 @@
 					
 					var newPrimInfo = {};
 					
-					var primMesh = new THREE.Mesh( primGeoms[primSource.typeIndex], primMats[primSource.typeIndex] );
+					var primMesh = new THREE.Mesh(
+						primGeoms[primSource.typeIndex],
+						new THREE.MeshBasicMaterial({
+							map:primTexs[primSource.typeIndex],
+							color:new THREE.Color(primSource.color)
+						})
+					);
 					applyTransformFromArray(primMesh,primSource.transform);
 					scene.add(primMesh);
 					newPrimInfo.mesh = primMesh;
@@ -477,6 +480,7 @@
 								
 								cubeInProgress = myPrimsServer.push();
 								dataToUpdate.typeIndex = 0;//hardcoded for now
+								dataToUpdate.color = nextColVal;
 								
 							}
 							
