@@ -20,6 +20,15 @@
 			font-size: 48px;
 			background-color: #888;
 		}
+		
+		.sectionHeader{
+			text-align: center;
+			background-color:#666;
+			padding:10px 0;
+			margin:4px 0;
+		}
+		
+		
 		.colSlider{
 			width:48px;
 			height:400px;
@@ -81,14 +90,30 @@
 		
 		#colResult{
 			background-color: #F0F;
-			height: 60px;
+			height: 40px;
 		}
+		
+		
+		.shapeOption{
+			text-align: center;
+			padding: 20px 0;
+			margin: 4px 0;
+			font-weight: bold;
+		}
+		.soSelected{
+			background-color:#FAC;
+		}
+		.soUnselected{
+			background-color:#AAA;
+		}
+		
 	</style>
 </head>
 <body>
 	<div id="title">SculpTogether Palette</div>
 	<table><tr>
 		<td>
+			<div class="sectionHeader">Select color:</div>
 			<div id="hueSlider" class="colSlider">
 				<div class="colSliderInnerGrad" id="hueSliderGrad">&nbsp;</div>
 				<div class="colSliderMarker" id="hueMarker"></div>
@@ -106,7 +131,8 @@
 			<div id="colResult">&nbsp;</div>
 		</td>
 		<td>
-			b
+			<div class="sectionHeader">Pinch creates:</div>
+			<div id="shapeOptionsHolder"></div>
 		</td>
 		<td>
 			c
@@ -147,6 +173,8 @@
 			var artServer = syncInstance.child('art');
 			var allUsersServer = artServer.child('users');
 			var myUserServer = allUsersServer.child(userInfo.userId);
+			
+			
 			var myNextColServer = myUserServer.child('nextCol');
 			
 			function setUpSlider(id,defaultVal){
@@ -223,6 +251,38 @@
 				
 			}
 			refreshColDisplay(true);
+			
+			
+			
+			var myNextShapeServer = myUserServer.child('nextShape');
+			
+			var shapeOptionsHolderDiv = document.getElementById('shapeOptionsHolder');
+			var shapeOptions = [];
+			function makeShapeOption(name){
+				
+				var myIndex = shapeOptions.length;
+				
+				var optionDiv = document.createElement('div');
+				shapeOptionsHolderDiv.appendChild(optionDiv);
+				optionDiv.innerHTML = name;
+				
+				optionDiv.addEventListener('click',function(){
+					shapeOptionNumClick(myIndex);
+				});
+				
+				shapeOptions.push(optionDiv);
+				
+			}
+			makeShapeOption("ball");
+			makeShapeOption("cube");
+			
+			function shapeOptionNumClick(clickedIndex){
+				for(var i=0; i<shapeOptions.length; i++){
+					shapeOptions[i].className = "shapeOption "+((i==clickedIndex)?"soSelected":"soUnselected");
+				}
+				myNextShapeServer.set(clickedIndex);
+			}
+			shapeOptionNumClick(0);
 			
 		}
 		

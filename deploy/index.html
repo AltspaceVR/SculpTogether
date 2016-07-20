@@ -164,9 +164,22 @@
 			var sphereCtx = sphereCanvas.getContext('2d');
 			var sphereGrad = sphereCtx.createLinearGradient(0,0,0,sphereCanvas.height);
 			sphereGrad.addColorStop(0,"#FFF");
-			sphereGrad.addColorStop(1,"#444S");
+			sphereGrad.addColorStop(1,"#444");
 			sphereCtx.fillStyle = sphereGrad;
 			sphereCtx.fillRect(0,0,sphereCanvas.width,sphereCanvas.height);
+			
+			var cubeCanvas = document.createElement('canvas');
+			cubeCanvas.width = cubeCanvas.height = 32;
+			var cubeCtx = cubeCanvas.getContext('2d');
+			cubeCtx.scale(cubeCanvas.width,cubeCanvas.height);
+			cubeCtx.fillStyle = "#777";
+			cubeCtx.fillRect(0,0,1,1);
+			var cubeGrad = cubeCtx.createRadialGradient(0.5,0.5,0, 0.5,0.5,0.5/Math.cos(Math.PI/4));
+			cubeGrad.addColorStop(0,"#FFF");
+			cubeGrad.addColorStop(1,"#AAA");
+			cubeCtx.fillStyle = cubeGrad;
+			var cubeMargin = 0.05;
+			cubeCtx.fillRect(cubeMargin,cubeMargin,1-cubeMargin*2,1-cubeMargin*2);
 			
 			
 			
@@ -176,7 +189,7 @@
 			];
 			var primTexs = [
 				new THREE.Texture(sphereCanvas),
-				new THREE.Texture(sphereCanvas)
+				new THREE.Texture(cubeCanvas)
 			];
 			
 			
@@ -413,10 +426,17 @@
 			myDrawingServer.child("nextCol").on("value",function(snapshot){
 				
 				var newVal = snapshot.val();
-				console.log("NEW COLOR VAL CHOICE:",newVal);
 				if (!newVal) return;
 				
 				nextColVal = newVal;
+				
+			});
+			
+			var nextShapeVal = 0;
+			myDrawingServer.child("nextShape").on("value",function(snapshot){
+				
+				var newVal = snapshot.val();
+				nextShapeVal = newVal?newVal:0;
 				
 			});
 			
@@ -479,7 +499,7 @@
 							if (!cubeInProgress && (pinchSpace < toWorldUnits(1))) {
 								
 								cubeInProgress = myPrimsServer.push();
-								dataToUpdate.typeIndex = 0;//hardcoded for now
+								dataToUpdate.typeIndex = nextShapeVal;
 								dataToUpdate.color = nextColVal;
 								
 							}
