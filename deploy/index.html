@@ -506,13 +506,35 @@
 							
 							if (cubeInProgress) {
 								
+								//
+								var avgQuat = new THREE.Quaternion();
+								THREE.Quaternion.slerp(
+									skeletonInfo.getJoint('Hand','Right').quaternion,
+									skeletonInfo.getJoint('Hand','Left').quaternion,
+								avgQuat,0.5);
+								
+								var handUp = new THREE.Vector3(0,1,0);
+								handUp.applyQuaternion(avgQuat);
+								
+								var lookWorkMtx = new THREE.Matrix4();
+								lookWorkMtx.lookAt(
+									leftPinch,
+									rightPinch,
+									handUp
+								);
+								
+								var rotEuler = new THREE.Euler();
+								rotEuler.setFromRotationMatrix(lookWorkMtx);
+								
+								//
+								
 								dataToUpdate.transform = [
 									// position:
 									(rightPinch.x + leftPinch.x)/2,
 									(rightPinch.y + leftPinch.y)/2,
 									(rightPinch.z + leftPinch.z)/2,
 									// rotation:
-									0,0,0,
+									rotEuler.x,rotEuler.y,rotEuler.z,
 									//scale:
 									pinchSpace,pinchSpace,pinchSpace
 								];
