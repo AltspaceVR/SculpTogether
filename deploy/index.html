@@ -194,19 +194,21 @@
 			
 			
 			
-			function applyTransformFromArray(obj,transList){
-				obj.position.set(transList[0],transList[1],transList[2]);
-				obj.rotation.set(transList[3],transList[4],transList[5]);
-				obj.scale.set(transList[6],transList[7],transList[8]);
-			}
+			
 			
 			
 			
 			var syncInstance = firebaseInfo.instance;
 			
+			var personalPrimsList;
+			
 			var artServer = syncInstance.child('art');
 			var usersServer = artServer.child('users');
 			usersServer.on("child_added",function(snapshot,prevChildKey){
+				
+				
+				var isMe = snapshot.key() == userInfo.userId;
+				console.log(isMe?"** ME FOUND!":"** not me...");
 				
 				
 				snapshot.ref().child("strokes").on("child_added",function(snapshot,prevChildKey){
@@ -266,6 +268,14 @@
 				
 				
 				var myPrimsList = {};
+				if (isMe) personalPrimsList = myPrimsList;
+				
+				function applyTransformFromArray(obj,transList){
+					obj.position.set(transList[0],transList[1],transList[2]);
+					obj.rotation.set(transList[3],transList[4],transList[5]);
+					obj.scale.set(transList[6],transList[7],transList[8]);
+					if (isMe) obj.boundBox.setFromObject(obj);
+				}
 				
 				snapshot.ref().child("prims").on("child_added",function(snapshot,prevChildKey){
 					
@@ -280,6 +290,7 @@
 							color:new THREE.Color(primSource.color)
 						})
 					);
+					primMesh.boundBox = new THREE.Box3(new THREE.Vector3(0,0,0),new THREE.Vector3(1,1,1));
 					applyTransformFromArray(primMesh,primSource.transform);
 					scene.add(primMesh);
 					newPrimInfo.mesh = primMesh;
@@ -441,6 +452,31 @@
 			});
 			
 			
+			var editModeVal = 0;
+			myDrawingServer.child("editMode").on("value",function(snapshot){
+				
+				var newVal = snapshot.val();
+				editModeVal = newVal?newVal:0;
+				
+			});
+			
+			
+			var dominantHand = "Right";
+			var otherHand = "Left";
+			myDrawingServer.child("handChoice").on("value",function(snapshot){
+				
+				if (snapshot.val()) {
+					dominantHand = "Left";
+					otherHand = "Right";
+				} else {
+					dominantHand = "Right";
+					otherHand = "Left";
+				}
+				
+			});
+			
+			
+			
 			
 			
 			function frameFunc() {
@@ -448,116 +484,157 @@
 				requestAnimationFrame(frameFunc);
 				
 				
-				if (skeletonInfo.getJoint('Hand','Right')) {
+				
+				switch(editModeVal){
 					
 					
-					if (isFingerPointing('Index','Right') && !isFingerPointing('Ring','Right')) {
+					case 0://draw
 						
-						if (!curPointsServer) {
+						if (skeletonInfo.getJoint('Hand',dominantHand)) {
 							
-							var curStrokeServer = myStrokesServer.push({color:nextColVal});
-							curPointsServer = curStrokeServer.child('points');
+							
+							if (isFingerPointing('Index',dominantHand) && !isFingerPointing('Ring',dominantHand)) {
+								
+								if (!curPointsServer) {
+									
+									var curStrokeServer = myStrokesServer.push({color:nextColVal});
+									curPointsServer = curStrokeServer.child('points');
+									
+								}
+								
+								var fingerPos = new THREE.Vector3();
+								var fingerQuat = new THREE.Quaternion();
+								getFingertipPos('Index',dominantHand,fingerPos,fingerQuat);
+								
+								if ( !lastPos || (fingerPos.distanceTo(lastPos) > toWorldUnits(0.1)) ) {
+									
+									var otherPos = offPtInDir(fingerPos,fingerQuat,toWorldUnits(0.5));
+									
+									var newPoint = curPointsServer.push();
+									newPoint.set({vertices:[fingerPos,otherPos]});
+									
+								}
+								
+								lastPos = fingerPos;
+								
+							} else {
+								
+								curPointsServer = null;
+								
+							}
+							
+							
+							
+							if (skeletonInfo.getJoint('Hand',otherHand)) {
+								
+								
+								var pinchThreshhold = cubeInProgress ? 1 : 1;//looser threshhold for release than for start, maybe?
+								var rightPinch = getHandPinch('Right',pinchThreshhold);
+								var leftPinch = getHandPinch('Left',pinchThreshhold);
+								
+								if (rightPinch && leftPinch) {
+									
+									var pinchSpace = rightPinch.distanceTo(leftPinch);
+									
+									var dataToUpdate = {};
+									
+									if (!cubeInProgress && (pinchSpace < toWorldUnits(1))) {
+										
+										cubeInProgress = myPrimsServer.push();
+										dataToUpdate.typeIndex = nextShapeVal;
+										dataToUpdate.color = nextColVal;
+										
+									}
+									
+									if (cubeInProgress) {
+										
+										//
+										var avgQuat = new THREE.Quaternion();
+										THREE.Quaternion.slerp(
+											skeletonInfo.getJoint('Hand','Right').quaternion,
+											skeletonInfo.getJoint('Hand','Left').quaternion,
+										avgQuat,0.5);
+										
+										var handUp = new THREE.Vector3(0,1,0);
+										handUp.applyQuaternion(avgQuat);
+										
+										var lookWorkMtx = new THREE.Matrix4();
+										lookWorkMtx.lookAt(
+											leftPinch,
+											rightPinch,
+											handUp
+										);
+										
+										var rotEuler = new THREE.Euler();
+										rotEuler.setFromRotationMatrix(lookWorkMtx);
+										
+										//
+										
+										dataToUpdate.transform = [
+											// position:
+											(rightPinch.x + leftPinch.x)/2,
+											(rightPinch.y + leftPinch.y)/2,
+											(rightPinch.z + leftPinch.z)/2,
+											// rotation:
+											rotEuler.x,rotEuler.y,rotEuler.z,
+											//scale:
+											pinchSpace,pinchSpace,pinchSpace
+										];
+										
+										cubeInProgress.update(dataToUpdate);
+										
+									}
+									
+								} else {
+									
+									cubeInProgress = null;
+									
+								}
+								
+								
+								
+							}
+							
 							
 						}
 						
-						var fingerPos = new THREE.Vector3();
-						var fingerQuat = new THREE.Quaternion();
-						getFingertipPos('Index','Right',fingerPos,fingerQuat);
+					break;
+					
+					
+					case 1://erase
 						
-						if ( !lastPos || (fingerPos.distanceTo(lastPos) > toWorldUnits(0.1)) ) {
-							
-							var otherPos = offPtInDir(fingerPos,fingerQuat,toWorldUnits(0.5));
-							
-							var newPoint = curPointsServer.push();
-							newPoint.set({vertices:[fingerPos,otherPos]});
-							
-						}
-						
-						lastPos = fingerPos;
-						
-					} else {
-						
+						// oof this is pretty hard-codey right here
 						curPointsServer = null;
+						cubeInProgress = null;
 						
-					}
-					
-					
-					
-					if (skeletonInfo.getJoint('Hand','Left')) {
-						
-						
-						var pinchThreshhold = cubeInProgress ? 1 : 1;//looser threshhold for release than for start, maybe?
-						var rightPinch = getHandPinch('Right',pinchThreshhold);
-						var leftPinch = getHandPinch('Left',pinchThreshhold);
-						
-						if (rightPinch && leftPinch) {
+						if (skeletonInfo.getJoint('Hand',dominantHand)) {
 							
-							var pinchSpace = rightPinch.distanceTo(leftPinch);
-							
-							var dataToUpdate = {};
-							
-							if (!cubeInProgress && (pinchSpace < toWorldUnits(1))) {
+							if (isFingerPointing('Index',dominantHand) && !isFingerPointing('Ring',dominantHand)) {
 								
-								cubeInProgress = myPrimsServer.push();
-								dataToUpdate.typeIndex = nextShapeVal;
-								dataToUpdate.color = nextColVal;
+								var fingerBone = skeletonInfo.getJoint('Index',dominantHand);
 								
-							}
-							
-							if (cubeInProgress) {
+								var pointRay = new THREE.Ray( fingerBone.position, fingerBone.getWorldDirection() );
 								
-								//
-								var avgQuat = new THREE.Quaternion();
-								THREE.Quaternion.slerp(
-									skeletonInfo.getJoint('Hand','Right').quaternion,
-									skeletonInfo.getJoint('Hand','Left').quaternion,
-								avgQuat,0.5);
+								for(var primKey in personalPrimsList){
+									var curPrim = personalPrimsList[primKey];
+									if (pointRay.isIntersectionBox(curPrim.mesh.boundBox)) {
+										console.log(primKey);
+									}
+								}
 								
-								var handUp = new THREE.Vector3(0,1,0);
-								handUp.applyQuaternion(avgQuat);
-								
-								var lookWorkMtx = new THREE.Matrix4();
-								lookWorkMtx.lookAt(
-									leftPinch,
-									rightPinch,
-									handUp
-								);
-								
-								var rotEuler = new THREE.Euler();
-								rotEuler.setFromRotationMatrix(lookWorkMtx);
-								
-								//
-								
-								dataToUpdate.transform = [
-									// position:
-									(rightPinch.x + leftPinch.x)/2,
-									(rightPinch.y + leftPinch.y)/2,
-									(rightPinch.z + leftPinch.z)/2,
-									// rotation:
-									rotEuler.x,rotEuler.y,rotEuler.z,
-									//scale:
-									pinchSpace,pinchSpace,pinchSpace
-								];
-								
-								cubeInProgress.update(dataToUpdate);
-								
-							}
-							
-						} else {
-							
-							if (cubeInProgress) {
-								cubeInProgress = null;
 							}
 							
 						}
 						
-						
-						
-						
-					}
+					break;
 					
 					
 				}
+				
+				
+				
+				
+				
 				
 				renderer.render(scene);
 				

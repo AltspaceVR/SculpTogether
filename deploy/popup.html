@@ -94,16 +94,16 @@
 		}
 		
 		
-		.shapeOption{
+		.radioOption{
 			text-align: center;
 			padding: 20px 0;
 			margin: 4px 0;
 			font-weight: bold;
 		}
-		.soSelected{
+		.roSelected{
 			background-color:#FAC;
 		}
-		.soUnselected{
+		.roUnselected{
 			background-color:#AAA;
 		}
 		
@@ -135,7 +135,12 @@
 			<div id="shapeOptionsHolder"></div>
 		</td>
 		<td>
-			c
+			<div class="sectionHeader">Editing mode:</div>
+			<div id="editOptionsHolder"></div>
+		</td>
+		<td>
+			<div class="sectionHeader">Handedness:</div>
+			<div id="handOptionsHolder"></div>
 		</td>
 	</tr></table>
 	
@@ -254,35 +259,44 @@
 			
 			
 			
-			var myNextShapeServer = myUserServer.child('nextShape');
 			
-			var shapeOptionsHolderDiv = document.getElementById('shapeOptionsHolder');
-			var shapeOptions = [];
-			function makeShapeOption(name){
+			function makeRadioSet(serverId,divId,labelsList){
 				
-				var myIndex = shapeOptions.length;
+				var myOptionServer = myUserServer.child(serverId);
 				
-				var optionDiv = document.createElement('div');
-				shapeOptionsHolderDiv.appendChild(optionDiv);
-				optionDiv.innerHTML = name;
-				
-				optionDiv.addEventListener('click',function(){
-					shapeOptionNumClick(myIndex);
-				});
-				
-				shapeOptions.push(optionDiv);
-				
-			}
-			makeShapeOption("ball");
-			makeShapeOption("cube");
-			
-			function shapeOptionNumClick(clickedIndex){
-				for(var i=0; i<shapeOptions.length; i++){
-					shapeOptions[i].className = "shapeOption "+((i==clickedIndex)?"soSelected":"soUnselected");
+				var myOptionsHolderDiv = document.getElementById(divId);
+				var myOptions = [];
+				function makeOption(name){
+					
+					var myIndex = myOptions.length;
+					
+					var optionDiv = document.createElement('div');
+					myOptionsHolderDiv.appendChild(optionDiv);
+					optionDiv.innerHTML = name;
+					
+					optionDiv.addEventListener('click',function(){
+						optionNumClick(myIndex);
+					});
+					
+					myOptions.push(optionDiv);
+					
 				}
-				myNextShapeServer.set(clickedIndex);
+				for(var i=0; i<labelsList.length; i++) makeOption(labelsList[i]);
+				
+				function optionNumClick(clickedIndex){
+					for(var i=0; i<myOptions.length; i++){
+						myOptions[i].className = "radioOption "+((i==clickedIndex)?"roSelected":"roUnselected");
+					}
+					myOptionServer.set(clickedIndex);
+				}
+				optionNumClick(0);
+				
 			}
-			shapeOptionNumClick(0);
+			
+			makeRadioSet('nextShape','shapeOptionsHolder',['ball','cube']);
+			makeRadioSet('editMode','editOptionsHolder',['draw','erase']);
+			makeRadioSet('handChoice','handOptionsHolder',['right','left']);
+			
 			
 		}
 		
