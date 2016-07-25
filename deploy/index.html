@@ -54,11 +54,6 @@
 	</div>
 	
 	
-	<div>
-		<div class="debugBarHolder"><div class="debugBar" id="debugX"></div></div>
-		<div class="debugBarHolder"><div class="debugBar" id="debugY"></div></div>
-		<div class="debugBarHolder"><div class="debugBar" id="debugZ"></div></div>
-	</div>
 	
 	
 	<script>
@@ -365,43 +360,6 @@
 			
 			
 			
-			function makeBranch(length,width,col){
-				var holder = new THREE.Object3D();
-				var box = new THREE.Mesh(
-					new THREE.BoxGeometry(width,width,length),
-					new THREE.MeshBasicMaterial({color:new THREE.Color(col)})
-				);
-				holder.add(box);
-				box.position.z = length/2;
-				return holder;
-			}
-			function makeArrow(col){
-				
-				var stemLength = 300;
-				var stem = makeBranch(stemLength,stemLength/10,col);
-				var head = makeBranch(stemLength/3,stemLength/10,col);
-				
-				stem.add(head);
-				head.position.z = stemLength;
-				head.rotation.x = -Math.PI*0.75;
-				
-				return stem;
-				
-			}
-			
-			var baseArrow = makeArrow("#00F");
-			var thumbArrow = makeArrow("#0F0");
-			scene.add(baseArrow);
-			scene.add(thumbArrow);
-			
-			var debugX = document.getElementById('debugX');
-			var debugY = document.getElementById('debugY');
-			var debugZ = document.getElementById('debugZ');
-			
-			function eulToCss(n){
-				return (((n/Math.PI)*0.5+0.5)*100)+"%";
-			}
-			
 			function isThumbUp(handName){
 				
 				var rootJoint = skeletonInfo.getJoint('Thumb',handName,0).quaternion.clone();
@@ -414,13 +372,7 @@
 				var thumbVec = new THREE.Vector3(0,0,1);
 				thumbVec.applyQuaternion(localQuat);
 				
-				thumbArrow.quaternion.copy(localQuat);
-				
-				debugX.style.width = eulToCss(thumbVec.x);
-				debugY.style.width = eulToCss(thumbVec.y);// it's y!!!
-				debugZ.style.width = eulToCss(thumbVec.z);
-				
-				return false;
+				return (thumbVec.y > -0.5);
 				
 			}
 			
@@ -559,18 +511,65 @@
 			});
 			
 			
+			var detonatorHolder = new THREE.Object3D();
+			scene.add(detonatorHolder);
+			
+			var detonatorBaseCanvas = document.createElement('canvas');
+			detonatorBaseCanvas.width = detonatorBaseCanvas.height = 8;
+			var detonatorBaseCtx = detonatorBaseCanvas.getContext('2d');
+			detonatorBaseCtx.scale(detonatorBaseCanvas.width, detonatorBaseCanvas.height);
+			var detonatorBaseGrad = detonatorBaseCtx.createLinearGradient(0,0,0,1);
+			detonatorBaseGrad.addColorStop(0,"#111");
+			detonatorBaseGrad.addColorStop(1,"#444");
+			detonatorBaseCtx.fillStyle = detonatorBaseGrad;
+			detonatorBaseCtx.fillRect(0,0,1,1);
+			
+			var detonatorRad = toWorldUnits(0.3);
+			var detonatorHeight = toWorldUnits(1.5);
+			var detonatorBase = new THREE.Mesh(
+				new THREE.CylinderGeometry(detonatorRad,detonatorRad,detonatorHeight,12),
+				new THREE.MeshBasicMaterial({map:new THREE.Texture(detonatorBaseCanvas)})
+			);
+			detonatorBase.position.set(
+				0,
+				toWorldUnits(-0.5),
+				toWorldUnits(1.0)
+			);
+			detonatorBase.rotation.set(
+				Math.PI*0.1,
+				0,
+				Math.PI*0.5,
+				'XYZ'
+			);
+			detonatorHolder.add(detonatorBase);
+			
+			var detonatorButtonW = detonatorRad*0.7;
+			var detonatorButtonH = detonatorHeight*0.2;
+			var detonatorButtonUp = new THREE.Mesh(
+				new THREE.CylinderGeometry(detonatorButtonW,detonatorButtonW,detonatorButtonH,12),
+				new THREE.MeshBasicMaterial({color:0x880000})
+			);
+			detonatorButtonUp.position.y = (detonatorHeight+detonatorButtonH)/2;
+			detonatorBase.add(detonatorButtonUp);
+			
+			var detonatorButtonDownH = detonatorButtonH*0.5;
+			var detonatorButtonDown = new THREE.Mesh(
+				new THREE.CylinderGeometry(detonatorButtonW,detonatorButtonW*1.3,detonatorButtonDownH,12),
+				new THREE.MeshBasicMaterial({color:0xFF0000})
+			);
+			detonatorButtonDown.position.y = (detonatorHeight+detonatorButtonDownH)*0.5;
+			detonatorBase.add(detonatorButtonDown);
+			
+			
 			
 			var lastHighlightingPrim;
+			var detonatorWasPressed = true;
 			
 			
 			function frameFunc() {
 				
 				
-				// DEBUG, otherwise test only if closestKey
-				if (skeletonInfo.getJoint('Hand',otherHand)) {
-					if (isThumbUp(otherHand)) console.log("THUMB UP");
-				}
-				//
+				
 				
 				
 				requestAnimationFrame(frameFunc);
@@ -700,6 +699,19 @@
 						curPointsServer = null;
 						cubeInProgress = null;
 						
+						var detonatorIsPressed = false;
+						var detonatorHandInfo = skeletonInfo.getJoint('Hand',otherHand);
+						if (detonatorHandInfo) {
+							
+							detonatorHolder.position.copy(detonatorHandInfo.position);
+							detonatorHolder.quaternion.copy(detonatorHandInfo.quaternion);
+							
+							detonatorIsPressed = !isThumbUp(otherHand);
+							detonatorButtonUp.visible = !detonatorIsPressed;
+							detonatorButtonDown.visible = detonatorIsPressed;
+							
+						}
+						
 						if (skeletonInfo.getJoint('Hand',dominantHand)) {
 							
 							if (isFingerPointing('Index',dominantHand) && !isFingerPointing('Ring',dominantHand)) {
@@ -728,13 +740,20 @@
 								}
 								
 								if (closestKey) {
-									highlightingPrim = personalPrimsList[closestKey];
-									highlightingPrim.mesh.material.color = new THREE.Color("hsl(0, 0%, "+Math.round(100*(Math.sin(Date.now()/100)*0.5+0.5))+"%)");
+									console.log("was",detonatorWasPressed,"is",detonatorIsPressed);
+									if (detonatorIsPressed && !detonatorWasPressed) {
+										myPrimsServer.child(closestKey).remove();
+									} else {
+										highlightingPrim = personalPrimsList[closestKey];
+										highlightingPrim.mesh.material.color = new THREE.Color("hsl(0, 0%, "+Math.round(100*(Math.sin(Date.now()/100)*0.5+0.5))+"%)");
+									}
 								}
 								
 							}
 							
 						}
+						
+						detonatorWasPressed = detonatorIsPressed;
 						
 					break;
 					
@@ -744,12 +763,14 @@
 				
 				if (lastHighlightingPrim) {
 					if (lastHighlightingPrim != highlightingPrim) {
+						// THIS MIGHT RUN EVEN IF THE PRIM HAS BEEN DELETED!!
+						// atm that's okay? but if it's ever not safe, do a check for its existence
 						lastHighlightingPrim.mesh.material.color = lastHighlightingPrim.mesh.realColor;
 					}
 				}
-				if (highlightingPrim) {
-					lastHighlightingPrim = highlightingPrim;
-				}
+				
+				lastHighlightingPrim = highlightingPrim;
+				
 				
 				
 				
