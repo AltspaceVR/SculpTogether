@@ -27,6 +27,18 @@
 			background-color: #FF88CC;
 			display: none;
 		}
+		
+		.debugBarHolder{
+			position: relative;
+			width:400px;
+			background-color: #000;
+		}
+		.debugBar{
+			height: 50px;
+		}
+		#debugX{ background-color: #F00; }
+		#debugY{ background-color: #0F0; }
+		#debugZ{ background-color: #00F; }
 	</style>
 	
 </head>
@@ -39,6 +51,13 @@
 	</div>
 	<div id="flatscreenError" class="msg">
 		Beam this app to a 3D enclosure!
+	</div>
+	
+	
+	<div>
+		<div class="debugBarHolder"><div class="debugBar" id="debugX"></div></div>
+		<div class="debugBarHolder"><div class="debugBar" id="debugY"></div></div>
+		<div class="debugBarHolder"><div class="debugBar" id="debugZ"></div></div>
 	</div>
 	
 	
@@ -283,13 +302,16 @@
 					
 					var newPrimInfo = {};
 					
+					var realColor = new THREE.Color(primSource.color);
+					
 					var primMesh = new THREE.Mesh(
 						primGeoms[primSource.typeIndex],
 						new THREE.MeshBasicMaterial({
 							map:primTexs[primSource.typeIndex],
-							color:new THREE.Color(primSource.color)
+							color:realColor
 						})
 					);
+					primMesh.realColor = realColor;
 					primMesh.boundBox = new THREE.Box3(new THREE.Vector3(0,0,0),new THREE.Vector3(1,1,1));
 					applyTransformFromArray(primMesh,primSource.transform);
 					scene.add(primMesh);
@@ -338,6 +360,67 @@
 				var bendAmt = quatDist(baseJoint.quaternion,firstJoint.quaternion);
 				
 				return (bendAmt < 0.03);
+				
+			}
+			
+			
+			
+			function makeBranch(length,width,col){
+				var holder = new THREE.Object3D();
+				var box = new THREE.Mesh(
+					new THREE.BoxGeometry(width,width,length),
+					new THREE.MeshBasicMaterial({color:new THREE.Color(col)})
+				);
+				holder.add(box);
+				box.position.z = length/2;
+				return holder;
+			}
+			function makeArrow(col){
+				
+				var stemLength = 300;
+				var stem = makeBranch(stemLength,stemLength/10,col);
+				var head = makeBranch(stemLength/3,stemLength/10,col);
+				
+				stem.add(head);
+				head.position.z = stemLength;
+				head.rotation.x = -Math.PI*0.75;
+				
+				return stem;
+				
+			}
+			
+			var baseArrow = makeArrow("#00F");
+			var thumbArrow = makeArrow("#0F0");
+			scene.add(baseArrow);
+			scene.add(thumbArrow);
+			
+			var debugX = document.getElementById('debugX');
+			var debugY = document.getElementById('debugY');
+			var debugZ = document.getElementById('debugZ');
+			
+			function eulToCss(n){
+				return (((n/Math.PI)*0.5+0.5)*100)+"%";
+			}
+			
+			function isThumbUp(handName){
+				
+				var rootJoint = skeletonInfo.getJoint('Thumb',handName,0).quaternion.clone();
+				var tipJoint = skeletonInfo.getJoint('Thumb',handName,3).quaternion.clone();
+				
+				rootJoint.inverse();
+				
+				var localQuat = new THREE.Quaternion().multiplyQuaternions(rootJoint,tipJoint);
+				
+				var thumbVec = new THREE.Vector3(0,0,1);
+				thumbVec.applyQuaternion(localQuat);
+				
+				thumbArrow.quaternion.copy(localQuat);
+				
+				debugX.style.width = eulToCss(thumbVec.x);
+				debugY.style.width = eulToCss(thumbVec.y);// it's y!!!
+				debugZ.style.width = eulToCss(thumbVec.z);
+				
+				return false;
 				
 			}
 			
@@ -477,12 +560,22 @@
 			
 			
 			
+			var lastHighlightingPrim;
 			
 			
 			function frameFunc() {
 				
+				
+				// DEBUG, otherwise test only if closestKey
+				if (skeletonInfo.getJoint('Hand',otherHand)) {
+					if (isThumbUp(otherHand)) console.log("THUMB UP");
+				}
+				//
+				
+				
 				requestAnimationFrame(frameFunc);
 				
+				var highlightingPrim;
 				
 				
 				switch(editModeVal){
@@ -611,15 +704,32 @@
 							
 							if (isFingerPointing('Index',dominantHand) && !isFingerPointing('Ring',dominantHand)) {
 								
-								var fingerBone = skeletonInfo.getJoint('Index',dominantHand);
+								var fingerBone = skeletonInfo.getJoint('Index',dominantHand,3);
 								
 								var pointRay = new THREE.Ray( fingerBone.position, fingerBone.getWorldDirection() );
+								
+								var closestDist = 9999999999;
+								var closestKey;
 								
 								for(var primKey in personalPrimsList){
 									var curPrim = personalPrimsList[primKey];
 									if (pointRay.isIntersectionBox(curPrim.mesh.boundBox)) {
-										console.log(primKey);
+										//this is just an approximation; doesn't account for grazing instead of aiming dead center
+										var centerGap = fingerBone.position.distanceTo(curPrim.mesh.position);
+										//makes it a bit more accurate in case of giant shapes, but, doesn't account for cubes, or smooshed shapes once that's added
+										centerGap -= curPrim.mesh.scale.x * 0.5;
+										if (centerGap < toWorldUnits(2.0)) {
+											if (centerGap < closestDist) {
+												closestDist = centerGap;
+												closestKey = primKey;
+											}
+										}
 									}
+								}
+								
+								if (closestKey) {
+									highlightingPrim = personalPrimsList[closestKey];
+									highlightingPrim.mesh.material.color = new THREE.Color("hsl(0, 0%, "+Math.round(100*(Math.sin(Date.now()/100)*0.5+0.5))+"%)");
 								}
 								
 							}
@@ -632,7 +742,14 @@
 				}
 				
 				
-				
+				if (lastHighlightingPrim) {
+					if (lastHighlightingPrim != highlightingPrim) {
+						lastHighlightingPrim.mesh.material.color = lastHighlightingPrim.mesh.realColor;
+					}
+				}
+				if (highlightingPrim) {
+					lastHighlightingPrim = highlightingPrim;
+				}
 				
 				
 				
