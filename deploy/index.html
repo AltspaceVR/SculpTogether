@@ -27,18 +27,6 @@
 			background-color: #FF88CC;
 			display: none;
 		}
-		
-		.debugBarHolder{
-			position: relative;
-			width:400px;
-			background-color: #000;
-		}
-		.debugBar{
-			height: 50px;
-		}
-		#debugX{ background-color: #F00; }
-		#debugY{ background-color: #0F0; }
-		#debugZ{ background-color: #00F; }
 	</style>
 	
 </head>
@@ -54,9 +42,27 @@
 	</div>
 	
 	
-	
-	
 	<script>
+	
+	
+	
+	
+	
+	// TEMPORARY WORKAROUND!! yuck yuck super yuck
+	var hideDist = 10000;
+	function objHide(obj){
+		if (obj.position.y < -hideDist/2) return;//presumably it's already hidden, don't compound it
+		obj.position.y -= hideDist;
+	}
+	function objShow(obj){
+		if (obj.position.y > -hideDist/2) return;//presumably it's already visible, don't compound it
+		obj.position.y += hideDist;
+	}
+	
+	
+	
+	
+	
 	
 	
 	function fullPath(filename,withSearch){
@@ -457,6 +463,13 @@
 			
 			
 			
+			function isHandActive(handName){
+				var handInfo = skeletonInfo.getJoint('Hand',handName);
+				if (!handInfo) return false;
+				if (handInfo.confidence < 2) return false;
+				return true;
+			}
+			
 			
 			
 			var myDrawingServer = usersServer.child(userInfo.userId);
@@ -508,6 +521,8 @@
 					otherHand = "Left";
 				}
 				
+				detonatorSetHandedness(otherHand);
+				
 			});
 			
 			
@@ -543,6 +558,10 @@
 			);
 			detonatorHolder.add(detonatorBase);
 			
+			function detonatorSetHandedness(handedness){
+				detonatorBase.rotation.y = (handedness == 'Left') ? 0 : Math.PI ;
+			}
+			
 			var detonatorButtonW = detonatorRad*0.7;
 			var detonatorButtonH = detonatorHeight*0.2;
 			var detonatorButtonUp = new THREE.Mesh(
@@ -560,10 +579,13 @@
 			detonatorButtonDown.position.y = (detonatorHeight+detonatorButtonDownH)*0.5;
 			detonatorBase.add(detonatorButtonDown);
 			
+			objHide(detonatorHolder);
+			
 			
 			
 			var lastHighlightingPrim;
 			var detonatorWasPressed = true;
+			
 			
 			
 			function frameFunc() {
@@ -582,7 +604,10 @@
 					
 					case 0://draw
 						
-						if (skeletonInfo.getJoint('Hand',dominantHand)) {
+						// kinda hard-codey and yuck...
+						objHide(detonatorHolder);
+						
+						if (isHandActive(dominantHand)) {
 							
 							
 							if (isFingerPointing('Index',dominantHand) && !isFingerPointing('Ring',dominantHand)) {
@@ -617,7 +642,7 @@
 							
 							
 							
-							if (skeletonInfo.getJoint('Hand',otherHand)) {
+							if (isHandActive(otherHand)) {
 								
 								
 								var pinchThreshhold = cubeInProgress ? 1 : 1;//looser threshhold for release than for start, maybe?
@@ -700,8 +725,14 @@
 						cubeInProgress = null;
 						
 						var detonatorIsPressed = false;
-						var detonatorHandInfo = skeletonInfo.getJoint('Hand',otherHand);
-						if (detonatorHandInfo) {
+						
+						if (isHandActive(otherHand)) {
+							
+							var detonatorHandInfo = skeletonInfo.getJoint('Hand',otherHand);
+							
+							//this is NOT strictly necessary since position is how it's being hidden right now anyway,
+							//but for the sake of supporting other show/hide systems, let's put it in
+							objShow(detonatorHolder);
 							
 							detonatorHolder.position.copy(detonatorHandInfo.position);
 							detonatorHolder.quaternion.copy(detonatorHandInfo.quaternion);
@@ -710,9 +741,15 @@
 							detonatorButtonUp.visible = !detonatorIsPressed;
 							detonatorButtonDown.visible = detonatorIsPressed;
 							
+						} else {
+							
+							objHide(detonatorHolder);
+							
 						}
 						
-						if (skeletonInfo.getJoint('Hand',dominantHand)) {
+						
+						
+						if (isHandActive(dominantHand)) {
 							
 							if (isFingerPointing('Index',dominantHand) && !isFingerPointing('Ring',dominantHand)) {
 								
