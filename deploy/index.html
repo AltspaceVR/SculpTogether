@@ -178,6 +178,7 @@
 			ribbonGrad.addColorStop(0,"#AAA");
 			ribbonCtx.fillStyle = ribbonGrad;
 			ribbonCtx.fillRect(0,0,ribbonCanvas.width,ribbonCanvas.height);
+			var ribbonTex = new THREE.Texture(ribbonCanvas);
 			
 			var sphereCanvas = document.createElement('canvas');
 			sphereCanvas.width = sphereCanvas.height = 16;
@@ -220,7 +221,7 @@
 			
 			var syncInstance = firebaseInfo.instance;
 			
-			var personalPrimsList;
+			var personalPrimsList, personalStrokesList;
 			
 			var artServer = syncInstance.child('art');
 			var usersServer = artServer.child('users');
@@ -231,16 +232,30 @@
 				console.log(isMe?"** ME FOUND!":"** not me...");
 				
 				
+				
+				var myStrokesList = {};
+				if (isMe) personalStrokesList = myStrokesList;
+				
 				snapshot.ref().child("strokes").on("child_added",function(snapshot,prevChildKey){
 					
 					
-					var curStrokeInfo = snapshot.val();
+					var strokeSource = snapshot.val();
+					
+					
+					var realColor = new THREE.Color(strokeSource.color);
 					
 					var ribbonMat = new THREE.MeshBasicMaterial({
-						map:new THREE.Texture(ribbonCanvas),
-						color:new THREE.Color(curStrokeInfo.color)
+						map:ribbonTex,
+						color:realColor
 					});
 					ribbonMat.side = THREE.DoubleSide;
+					ribbonMat.realColor = realColor;//CUSTOM PROPERTY, hopefully this is safe? >_>
+					
+					var curStrokeInfo = {};
+					curStrokeInfo.material = ribbonMat;
+					curStrokeInfo.meshes = [];
+					myStrokesList[snapshot.key()] = curStrokeInfo;
+					
 					
 					
 					var lastPointKey = null;
@@ -269,6 +284,11 @@
 							
 							var newMesh = new THREE.Mesh( newGeom, ribbonMat );
 							scene.add(newMesh);
+							curStrokeInfo.meshes.push(newMesh);
+							if (isMe) {
+								newMesh.boundBox = new THREE.Box3(new THREE.Vector3(0,0,0),new THREE.Vector3(1,1,1));
+								newMesh.boundBox.setFromObject(newMesh);
+							}
 							
 						}
 						
@@ -277,10 +297,18 @@
 						
 					});
 					
-					snapshot.ref().child("deletions").on("child_added",function(snapshot,prevChildKey){
-						
-					});
 					
+				});
+				
+				snapshot.ref().child("strokes").on("child_removed",function(deadSnapshot){
+					
+					var key = deadSnapshot.key();
+					var piecesList = myStrokesList[key].meshes;
+					for(var i=0; i<piecesList.length; i++) scene.remove(piecesList[i]);
+					//is it important to also disconnect the snapshot that's listening for new points?
+					//(or to do so when each stroke is done being drawn, for that matter?)
+					//it probably doesn't cost much just to listen so I guess I'll leave it be for now...
+					delete myStrokesList[key];
 					
 				});
 				
@@ -301,8 +329,6 @@
 					
 					var primSource = snapshot.val();
 					
-					var newPrimInfo = {};
-					
 					var realColor = new THREE.Color(primSource.color);
 					
 					var primMesh = new THREE.Mesh(
@@ -312,24 +338,23 @@
 							color:realColor
 						})
 					);
-					primMesh.realColor = realColor;
+					primMesh.material.realColor = realColor;
 					primMesh.boundBox = new THREE.Box3(new THREE.Vector3(0,0,0),new THREE.Vector3(1,1,1));
 					applyTransformFromArray(primMesh,primSource.transform);
 					scene.add(primMesh);
-					newPrimInfo.mesh = primMesh;
 					
-					myPrimsList[snapshot.key()] = newPrimInfo;
+					myPrimsList[snapshot.key()] = primMesh;
 					
 				});
 				snapshot.ref().child("prims").on("child_changed",function(snapshot,prevChildKey){
 					
-					applyTransformFromArray(myPrimsList[snapshot.key()].mesh,snapshot.val().transform);
+					applyTransformFromArray(myPrimsList[snapshot.key()],snapshot.val().transform);
 					
 				});
 				snapshot.ref().child("prims").on("child_removed",function(deadSnapshot){
 					
 					var key = deadSnapshot.key();
-					scene.remove(myPrimsList[key].mesh);
+					scene.remove(myPrimsList[key]);
 					delete myPrimsList[key];
 					
 				});
@@ -583,7 +608,7 @@
 			
 			
 			
-			var lastHighlightingPrim;
+			var lastHighlightingMat;
 			var detonatorWasPressed = true;
 			
 			
@@ -596,7 +621,7 @@
 				
 				requestAnimationFrame(frameFunc);
 				
-				var highlightingPrim;
+				var highlightingMat;
 				
 				
 				switch(editModeVal){
@@ -759,30 +784,49 @@
 								
 								var closestDist = 9999999999;
 								var closestKey;
+								var closestIsPrim;
 								
 								for(var primKey in personalPrimsList){
 									var curPrim = personalPrimsList[primKey];
-									if (pointRay.isIntersectionBox(curPrim.mesh.boundBox)) {
+									if (pointRay.isIntersectionBox(curPrim.boundBox)) {
 										//this is just an approximation; doesn't account for grazing instead of aiming dead center
-										var centerGap = fingerBone.position.distanceTo(curPrim.mesh.position);
+										var centerGap = fingerBone.position.distanceTo(curPrim.position);
 										//makes it a bit more accurate in case of giant shapes, but, doesn't account for cubes, or smooshed shapes once that's added
-										centerGap -= curPrim.mesh.scale.x * 0.5;
+										centerGap -= curPrim.scale.x * 0.5;
 										if (centerGap < toWorldUnits(2.0)) {
 											if (centerGap < closestDist) {
 												closestDist = centerGap;
 												closestKey = primKey;
+												closestIsPrim = true;
+											}
+										}
+									}
+								}
+								
+								for(var strokeKey in personalStrokesList){
+									var curStroke = personalStrokesList[strokeKey];
+									for(var i=0; i<curStroke.meshes.length; i++){
+										var curMesh = curStroke.meshes[i];
+										if (pointRay.isIntersectionBox(curMesh.boundBox)) {
+											//see above for how rough this is
+											var centerGap = fingerBone.position.distanceTo(curMesh.boundBox.center());
+											if (centerGap < toWorldUnits(2.0)) {
+												if (centerGap < closestDist) {
+													closestDist = centerGap;
+													closestKey = strokeKey;
+													closestIsPrim = false;
+												}
 											}
 										}
 									}
 								}
 								
 								if (closestKey) {
-									console.log("was",detonatorWasPressed,"is",detonatorIsPressed);
 									if (detonatorIsPressed && !detonatorWasPressed) {
-										myPrimsServer.child(closestKey).remove();
+										(closestIsPrim?myPrimsServer:myStrokesServer).child(closestKey).remove();
 									} else {
-										highlightingPrim = personalPrimsList[closestKey];
-										highlightingPrim.mesh.material.color = new THREE.Color("hsl(0, 0%, "+Math.round(100*(Math.sin(Date.now()/100)*0.5+0.5))+"%)");
+										highlightingMat = (closestIsPrim?personalPrimsList:personalStrokesList)[closestKey].material;
+										highlightingMat.color = new THREE.Color("hsl(0, 0%, "+Math.round(100*(Math.sin(Date.now()/100)*0.5+0.5))+"%)");
 									}
 								}
 								
@@ -798,15 +842,15 @@
 				}
 				
 				
-				if (lastHighlightingPrim) {
-					if (lastHighlightingPrim != highlightingPrim) {
+				if (lastHighlightingMat) {
+					if (lastHighlightingMat != highlightingMat) {
 						// THIS MIGHT RUN EVEN IF THE PRIM HAS BEEN DELETED!!
 						// atm that's okay? but if it's ever not safe, do a check for its existence
-						lastHighlightingPrim.mesh.material.color = lastHighlightingPrim.mesh.realColor;
+						lastHighlightingMat.color = lastHighlightingMat.realColor;
 					}
 				}
 				
-				lastHighlightingPrim = highlightingPrim;
+				lastHighlightingMat = highlightingMat;
 				
 				
 				
