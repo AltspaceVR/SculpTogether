@@ -45,6 +45,21 @@
 	<script>
 	
 	
+	
+	
+	
+	/*
+		TODO:
+		- line thickness
+		- more 'wearables' for other leap motion functions?
+		- prettify palette
+		- GearVR controls
+		- Vive controls
+		- change title!
+	*/
+	
+	
+	
 	console.log("========================================================");
 	
 	
@@ -612,6 +627,17 @@
 			});
 			
 			
+			var strokeWidthFrac = 1/3;
+			myDrawingServer.child("strokeThicknessFrac").on("value",function(snapshot){
+				
+				var newVal = snapshot.val();
+				if (!newVal) return;
+				
+				strokeWidthFrac = newVal;
+				
+			});
+			
+			
 			var detonatorHolder = new THREE.Object3D();
 			scene.add(detonatorHolder);
 			
@@ -716,7 +742,8 @@
 								
 								if ( !lastPos || (fingerPos.distanceTo(lastPos) > toWorldUnits(0.1)) ) {
 									
-									var otherPos = offPtInDir(fingerPos,fingerQuat,toWorldUnits(0.5));
+									var strokeThickness = 0.2 + strokeWidthFrac*1.6;
+									var otherPos = offPtInDir(fingerPos,fingerQuat,toWorldUnits(strokeThickness));
 									
 									var newPoint = curPointsServer.push();
 									newPoint.set({vertices:[fingerPos,otherPos]});
