@@ -11,6 +11,11 @@
 	<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r73/three.min.js"></script>
 	<script src="http://sdk.altvr.com/libs/altspace.js/0.14.1/altspace.min.js"></script>
 	
+	
+	
+	<script src="controls_leapmotion.js"></script>
+	
+	
 	<style>
 		.msg{
 			
@@ -50,12 +55,11 @@
 	
 	/*
 		TODO:
-		- line thickness
-		- more 'wearables' for other leap motion functions?
-		- prettify palette
 		- GearVR controls
 		- Vive controls
+		- prettify palette
 		- change title!
+		- more 'wearables' for other leap motion functions?
 	*/
 	
 	
@@ -90,7 +94,40 @@
 	
 	
 	
+	
+	
+	
+	function quatDot(a,b) {
+		return a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w;
+	}
+	function quatDist(a,b) {
+		return (1-Math.abs(quatDot(a,b)));//should be *2 according to formula, but that gives answers from 0-2, and I'd rather 0-1 anyway?
+	}
+	
+	function offPtInDir(pt,dir,dist){
+		var off = new THREE.Vector3(0,0,dist);
+		off.applyQuaternion(dir);
+		off.add(pt);
+		return off;
+	}
+	
+	
+	
+	
 	var enclosureInfo,skeletonInfo,userInfo,popupInfo,firebaseInfo;
+	
+	var scene;
+	var ppm;
+	function toWorldUnits(x){
+		return x*ppm /17.873589;//hardcoded divisor; numbers were tuned to that room's ppm
+	}
+	
+	var dominantHand, otherHand;
+	
+	
+	
+	
+	
 	
 	
 	function altspaceSetup(){
@@ -166,12 +203,7 @@
 		
 		
 		
-		function quatDot(a,b) {
-			return a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w;
-		}
-		function quatDist(a,b) {
-			return (1-Math.abs(quatDot(a,b)));//should be *2 according to formula, but that gives answers from 0-2, and I'd rather 0-1 anyway?
-		}
+		
 		
 		
 		
@@ -180,7 +212,7 @@
 			
 			
 			var renderer = altspace.getThreeJSRenderer();
-			var scene = new THREE.Scene();
+			scene = new THREE.Scene();
 			
 			
 			
@@ -445,131 +477,11 @@
 			
 			
 			
-			var ppm = enclosureInfo.pixelsPerMeter;
+			ppm = enclosureInfo.pixelsPerMeter;
 			console.log("ENCLOSURE SCALE:",ppm);
 			
 			
-			function toWorldUnits(x){
-				return x*ppm /17.873589;//hardcoded divisor; numbers were tuned to that room's ppm
-			}
 			
-			
-			function isFingerPointing(fingerName,handName){
-				
-				var baseJoint = skeletonInfo.getJoint(fingerName,handName,0);
-				var firstJoint = skeletonInfo.getJoint(fingerName,handName,3);
-				
-				var bendAmt = quatDist(baseJoint.quaternion,firstJoint.quaternion);
-				
-				return (bendAmt < 0.03);
-				
-			}
-			
-			
-			
-			function isThumbUp(handName){
-				
-				var rootJoint = skeletonInfo.getJoint('Thumb',handName,0).quaternion.clone();
-				var tipJoint = skeletonInfo.getJoint('Thumb',handName,3).quaternion.clone();
-				
-				rootJoint.inverse();
-				
-				var localQuat = new THREE.Quaternion().multiplyQuaternions(rootJoint,tipJoint);
-				
-				var thumbVec = new THREE.Vector3(0,0,1);
-				thumbVec.applyQuaternion(localQuat);
-				
-				return (thumbVec.y > -0.5);
-				
-			}
-			
-			function offPtInDir(pt,dir,dist){
-				var off = new THREE.Vector3(0,0,dist);
-				off.applyQuaternion(dir);
-				off.add(pt);
-				return off;
-			}
-			function getFingertipPos(fingerName,handName,posOut,quatOut){
-				
-				var lastJointIndex = 3;//check if this needs to be changed for thumb, presumably?
-				
-				
-				// finger joints aren't NECESSARILY the same length but it's the right ballpark
-				
-				var midJoint = skeletonInfo.getJoint(fingerName,handName,lastJointIndex-1);
-				var lastJoint = skeletonInfo.getJoint(fingerName,handName,lastJointIndex);
-				
-				var jointLength = midJoint.position.distanceTo(lastJoint.position);
-				
-				posOut.copy(offPtInDir(lastJoint.position,lastJoint.quaternion,jointLength));
-				quatOut.copy(lastJoint.quaternion);
-				
-			}
-			
-			
-			
-			var pinchDebugGeom = new THREE.SphereGeometry(0.2);
-			var pinchDebugMat = new THREE.MeshBasicMaterial({color:0xFF00FF});
-			var pinchDebugMeshes = {
-				'Left':new THREE.Mesh(pinchDebugGeom,pinchDebugMat),
-				'Right':new THREE.Mesh(pinchDebugGeom,pinchDebugMat)
-			}
-			
-			//scene.add(pinchDebugMeshes['Left']);
-			//scene.add(pinchDebugMeshes['Right']);
-			
-			
-			function getHandPinch(handName,threshhold){
-				
-				var indexPos = new THREE.Vector3();
-				var thumbPos = new THREE.Vector3();
-				var dummyQuat = new THREE.Quaternion();
-				
-				getFingertipPos('Index',handName,indexPos,dummyQuat);
-				getFingertipPos('Thumb',handName,thumbPos,dummyQuat);
-				
-				var pinchGap = indexPos.distanceTo(thumbPos);
-				
-				if (pinchGap < toWorldUnits(threshhold)) {
-					
-					
-					//return new THREE.Vector3(
-					//	(indexPos.x+thumbPos.x)/2,
-					//	(indexPos.y+thumbPos.y)/2,
-					//	(indexPos.z+thumbPos.z)/2
-					//);
-					
-					// turns out that opening your fingers moves your index farther than your thumb,
-					// so to avoid drift when releasing, let's assume pinches are a fixed point away from your palm
-					
-					var palmJoint = skeletonInfo.getJoint('Hand',handName,0);
-					var pinchPoint = new THREE.Vector3(
-						toWorldUnits(0.5),
-						toWorldUnits(-1),
-						toWorldUnits(1.5)
-					);
-					if (handName == "Left") pinchPoint.x *= -1;
-					pinchPoint.applyQuaternion(palmJoint.quaternion);
-					pinchPoint.add(palmJoint.position);
-					
-					pinchDebugMeshes[handName].position.copy(pinchPoint);
-					
-					return pinchPoint;
-					
-				} else {
-					return false;
-				}
-				
-			}
-			
-			
-			
-			function isHandActive(handName){
-				var handInfo = skeletonInfo.getJoint('Hand',handName);
-				if (!handInfo) return false;
-				if (handInfo.confidence < 2) return false;
-				return true;
-			}
 			
 			
 			
@@ -607,11 +519,13 @@
 				var newVal = snapshot.val();
 				editModeVal = newVal?newVal:0;
 				
+				if (curControlSystem) curControlSystem.modeSwitch(editModeVal);
+				
 			});
 			
 			
-			var dominantHand = "Right";
-			var otherHand = "Left";
+			dominantHand = "Right";
+			otherHand = "Left";
 			myDrawingServer.child("handChoice").on("value",function(snapshot){
 				
 				if (snapshot.val()) {
@@ -621,8 +535,6 @@
 					dominantHand = "Right";
 					otherHand = "Left";
 				}
-				
-				detonatorSetHandedness(otherHand);
 				
 			});
 			
@@ -638,60 +550,24 @@
 			});
 			
 			
-			var detonatorHolder = new THREE.Object3D();
-			scene.add(detonatorHolder);
 			
-			var detonatorBaseCanvas = document.createElement('canvas');
-			detonatorBaseCanvas.width = detonatorBaseCanvas.height = 8;
-			var detonatorBaseCtx = detonatorBaseCanvas.getContext('2d');
-			detonatorBaseCtx.scale(detonatorBaseCanvas.width, detonatorBaseCanvas.height);
-			var detonatorBaseGrad = detonatorBaseCtx.createLinearGradient(0,0,0,1);
-			detonatorBaseGrad.addColorStop(0,"#111");
-			detonatorBaseGrad.addColorStop(1,"#444");
-			detonatorBaseCtx.fillStyle = detonatorBaseGrad;
-			detonatorBaseCtx.fillRect(0,0,1,1);
 			
-			var detonatorRad = toWorldUnits(0.3);
-			var detonatorHeight = toWorldUnits(1.5);
-			var detonatorBase = new THREE.Mesh(
-				new THREE.CylinderGeometry(detonatorRad,detonatorRad,detonatorHeight,12),
-				new THREE.MeshBasicMaterial({map:new THREE.Texture(detonatorBaseCanvas)})
-			);
-			detonatorBase.position.set(
-				0,
-				toWorldUnits(-0.5),
-				toWorldUnits(1.0)
-			);
-			detonatorBase.rotation.set(
-				Math.PI*0.1,
-				0,
-				Math.PI*0.5,
-				'XYZ'
-			);
-			detonatorHolder.add(detonatorBase);
 			
-			function detonatorSetHandedness(handedness){
-				detonatorBase.rotation.y = (handedness == 'Left') ? 0 : Math.PI ;
+			
+			var controlSystems = {
+				leapmotion: SETUP_leapmotion()
+			};
+			
+			var curControlSystem
+			function changeControlSystem(newControlSystem){
+				curControlSystem = newControlSystem;
+				curControlSystem.modeSwitch(editModeVal);//a little redundant..
 			}
+			changeControlSystem(controlSystems.leapmotion);
 			
-			var detonatorButtonW = detonatorRad*0.7;
-			var detonatorButtonH = detonatorHeight*0.2;
-			var detonatorButtonUp = new THREE.Mesh(
-				new THREE.CylinderGeometry(detonatorButtonW,detonatorButtonW,detonatorButtonH,12),
-				new THREE.MeshBasicMaterial({color:0x880000})
-			);
-			detonatorButtonUp.position.y = (detonatorHeight+detonatorButtonH)/2;
-			detonatorBase.add(detonatorButtonUp);
 			
-			var detonatorButtonDownH = detonatorButtonH*0.5;
-			var detonatorButtonDown = new THREE.Mesh(
-				new THREE.CylinderGeometry(detonatorButtonW,detonatorButtonW*1.3,detonatorButtonDownH,12),
-				new THREE.MeshBasicMaterial({color:0xFF0000})
-			);
-			detonatorButtonDown.position.y = (detonatorHeight+detonatorButtonDownH)*0.5;
-			detonatorBase.add(detonatorButtonDown);
 			
-			objHide(detonatorHolder);
+			
 			
 			
 			
@@ -721,117 +597,107 @@
 					
 					case 0://draw
 						
-						// kinda hard-codey and yuck...
-						objHide(detonatorHolder);
 						
-						if (isHandActive(dominantHand)) {
+						
+						
+						
+						var curPointingInfo = curControlSystem.getDominantPointing();
+						if (curPointingInfo) {
 							
-							
-							if (isFingerPointing('Index',dominantHand) && !isFingerPointing('Ring',dominantHand)) {
+							if (!curPointsServer) {
 								
-								if (!curPointsServer) {
-									
-									var curStrokeServer = myStrokesServer.push({color:nextColVal});
-									curPointsServer = curStrokeServer.child('points');
-									
-								}
-								
-								var fingerPos = new THREE.Vector3();
-								var fingerQuat = new THREE.Quaternion();
-								getFingertipPos('Index',dominantHand,fingerPos,fingerQuat);
-								
-								if ( !lastPos || (fingerPos.distanceTo(lastPos) > toWorldUnits(0.1)) ) {
-									
-									var strokeThickness = 0.2 + strokeWidthFrac*1.6;
-									var otherPos = offPtInDir(fingerPos,fingerQuat,toWorldUnits(strokeThickness));
-									
-									var newPoint = curPointsServer.push();
-									newPoint.set({vertices:[fingerPos,otherPos]});
-									
-								}
-								
-								lastPos = fingerPos;
-								
-							} else {
-								
-								curPointsServer = null;
+								var curStrokeServer = myStrokesServer.push({color:nextColVal});
+								curPointsServer = curStrokeServer.child('points');
 								
 							}
 							
 							
 							
-							if (isHandActive(otherHand)) {
+							if ( !lastPos || (curPointingInfo.fingerPos.distanceTo(lastPos) > toWorldUnits(0.1)) ) {
 								
+								var strokeThickness = 0.2 + strokeWidthFrac*1.6;
+								var otherPos = offPtInDir(curPointingInfo.fingerPos,curPointingInfo.fingerQuat,toWorldUnits(strokeThickness));
 								
-								var pinchThreshhold = cubeInProgress ? 1 : 1;//looser threshhold for release than for start, maybe?
-								var rightPinch = getHandPinch('Right',pinchThreshhold);
-								var leftPinch = getHandPinch('Left',pinchThreshhold);
-								
-								if (rightPinch && leftPinch) {
-									
-									var pinchSpace = rightPinch.distanceTo(leftPinch);
-									
-									var dataToUpdate = {};
-									
-									if (!cubeInProgress && (pinchSpace < toWorldUnits(1))) {
-										
-										cubeInProgress = myPrimsServer.push();
-										dataToUpdate.typeIndex = nextShapeVal;
-										dataToUpdate.color = nextColVal;
-										
-									}
-									
-									if (cubeInProgress) {
-										
-										//
-										var avgQuat = new THREE.Quaternion();
-										THREE.Quaternion.slerp(
-											skeletonInfo.getJoint('Hand','Right').quaternion,
-											skeletonInfo.getJoint('Hand','Left').quaternion,
-										avgQuat,0.5);
-										
-										var handUp = new THREE.Vector3(0,1,0);
-										handUp.applyQuaternion(avgQuat);
-										
-										var lookWorkMtx = new THREE.Matrix4();
-										lookWorkMtx.lookAt(
-											leftPinch,
-											rightPinch,
-											handUp
-										);
-										
-										var rotEuler = new THREE.Euler();
-										rotEuler.setFromRotationMatrix(lookWorkMtx);
-										
-										//
-										
-										dataToUpdate.transform = [
-											// position:
-											(rightPinch.x + leftPinch.x)/2,
-											(rightPinch.y + leftPinch.y)/2,
-											(rightPinch.z + leftPinch.z)/2,
-											// rotation:
-											rotEuler.x,rotEuler.y,rotEuler.z,
-											//scale:
-											pinchSpace,pinchSpace,pinchSpace
-										];
-										
-										cubeInProgress.update(dataToUpdate);
-										
-									}
-									
-								} else {
-									
-									cubeInProgress = null;
-									
-								}
-								
-								
+								var newPoint = curPointsServer.push();
+								newPoint.set({vertices:[curPointingInfo.fingerPos,otherPos]});
 								
 							}
 							
+							lastPos = curPointingInfo.fingerPos;
+							
+						} else {
+							
+							curPointsServer = null;
 							
 						}
+						
+						
+						
+						
+						var curPinchSpreadInfo = curControlSystem.getBothPinching();
+						if (curPinchSpreadInfo) {
+							
+							
+							
+							var pinchSpace = curPinchSpreadInfo.rightPinch.distanceTo(curPinchSpreadInfo.leftPinch);
+							
+							var dataToUpdate = {};
+							
+							if (!cubeInProgress && (pinchSpace < toWorldUnits(1))) {
+								
+								cubeInProgress = myPrimsServer.push();
+								dataToUpdate.typeIndex = nextShapeVal;
+								dataToUpdate.color = nextColVal;
+								
+							}
+							
+							if (cubeInProgress) {
+								
+								//
+								var avgQuat = new THREE.Quaternion();
+								THREE.Quaternion.slerp(
+									curPinchSpreadInfo.rightQuat,
+									curPinchSpreadInfo.leftQuat,
+								avgQuat,0.5);
+								
+								var handUp = new THREE.Vector3(0,1,0);
+								handUp.applyQuaternion(avgQuat);
+								
+								var lookWorkMtx = new THREE.Matrix4();
+								lookWorkMtx.lookAt(
+									curPinchSpreadInfo.leftPinch,
+									curPinchSpreadInfo.rightPinch,
+									handUp
+								);
+								
+								var rotEuler = new THREE.Euler();
+								rotEuler.setFromRotationMatrix(lookWorkMtx);
+								
+								//
+								
+								dataToUpdate.transform = [
+									// position:
+									(curPinchSpreadInfo.rightPinch.x + curPinchSpreadInfo.leftPinch.x)/2,
+									(curPinchSpreadInfo.rightPinch.y + curPinchSpreadInfo.leftPinch.y)/2,
+									(curPinchSpreadInfo.rightPinch.z + curPinchSpreadInfo.leftPinch.z)/2,
+									// rotation:
+									rotEuler.x,rotEuler.y,rotEuler.z,
+									//scale:
+									pinchSpace,pinchSpace,pinchSpace
+								];
+								
+								cubeInProgress.update(dataToUpdate);
+								
+							}
+							
+						} else {
+							
+							cubeInProgress = null;
+							
+						}
+						
+						
+						
 						
 					break;
 					
@@ -842,88 +708,69 @@
 						curPointsServer = null;
 						cubeInProgress = null;
 						
-						var detonatorIsPressed = false;
-						
-						if (isHandActive(otherHand)) {
-							
-							var detonatorHandInfo = skeletonInfo.getJoint('Hand',otherHand);
-							
-							//this is NOT strictly necessary since position is how it's being hidden right now anyway,
-							//but for the sake of supporting other show/hide systems, let's put it in
-							objShow(detonatorHolder);
-							
-							detonatorHolder.position.copy(detonatorHandInfo.position);
-							detonatorHolder.quaternion.copy(detonatorHandInfo.quaternion);
-							
-							detonatorIsPressed = !isThumbUp(otherHand);
-							detonatorButtonUp.visible = !detonatorIsPressed;
-							detonatorButtonDown.visible = detonatorIsPressed;
-							
-						} else {
-							
-							objHide(detonatorHolder);
-							
-						}
+						var detonatorIsPressed = curControlSystem.getDetonatorPressed();
 						
 						
 						
-						if (isHandActive(dominantHand)) {
+						
+						var curPointingInfo = curControlSystem.getDominantPointing();
+						if (curPointingInfo) {
 							
-							if (isFingerPointing('Index',dominantHand) && !isFingerPointing('Ring',dominantHand)) {
-								
-								var fingerBone = skeletonInfo.getJoint('Index',dominantHand,3);
-								
-								var pointRay = new THREE.Ray( fingerBone.position, fingerBone.getWorldDirection() );
-								
-								var closestDist = 9999999999;
-								var closestKey;
-								var closestIsPrim;
-								
-								for(var primKey in personalPrimsList){
-									var curPrim = personalPrimsList[primKey];
-									if (pointRay.isIntersectionBox(curPrim.boundBox)) {
-										//this is just an approximation; doesn't account for grazing instead of aiming dead center
-										var centerGap = fingerBone.position.distanceTo(curPrim.position);
-										//makes it a bit more accurate in case of giant shapes, but, doesn't account for cubes, or smooshed shapes once that's added
-										centerGap -= curPrim.scale.x * 0.5;
+							
+							var pointZ = new THREE.Vector3(0,0,1);
+							curPointingInfo.fingerQuat.multiplyVector3(pointZ);
+							var pointRay = new THREE.Ray( curPointingInfo.fingerPos, pointZ );
+							
+							
+							var closestDist = 9999999999;
+							var closestKey;
+							var closestIsPrim;
+							
+							for(var primKey in personalPrimsList){
+								var curPrim = personalPrimsList[primKey];
+								if (pointRay.isIntersectionBox(curPrim.boundBox)) {
+									//this is just an approximation; doesn't account for grazing instead of aiming dead center
+									var centerGap = curPointingInfo.fingerPos.distanceTo(curPrim.position);
+									//makes it a bit more accurate in case of giant shapes, but, doesn't account for cubes, or smooshed shapes once that's added
+									centerGap -= curPrim.scale.x * 0.5;
+									if (centerGap < toWorldUnits(2.0)) {
+										if (centerGap < closestDist) {
+											closestDist = centerGap;
+											closestKey = primKey;
+											closestIsPrim = true;
+										}
+									}
+								}
+							}
+							
+							for(var strokeKey in personalStrokesList){
+								var curStroke = personalStrokesList[strokeKey];
+								for(var i=0; i<curStroke.meshes.length; i++){
+									var curMesh = curStroke.meshes[i];
+									if (pointRay.isIntersectionBox(curMesh.boundBox)) {
+										//see above for how rough this is
+										var centerGap = curPointingInfo.fingerPos.distanceTo(curMesh.boundBox.center());
 										if (centerGap < toWorldUnits(2.0)) {
 											if (centerGap < closestDist) {
 												closestDist = centerGap;
-												closestKey = primKey;
-												closestIsPrim = true;
+												closestKey = strokeKey;
+												closestIsPrim = false;
 											}
 										}
 									}
 								}
-								
-								for(var strokeKey in personalStrokesList){
-									var curStroke = personalStrokesList[strokeKey];
-									for(var i=0; i<curStroke.meshes.length; i++){
-										var curMesh = curStroke.meshes[i];
-										if (pointRay.isIntersectionBox(curMesh.boundBox)) {
-											//see above for how rough this is
-											var centerGap = fingerBone.position.distanceTo(curMesh.boundBox.center());
-											if (centerGap < toWorldUnits(2.0)) {
-												if (centerGap < closestDist) {
-													closestDist = centerGap;
-													closestKey = strokeKey;
-													closestIsPrim = false;
-												}
-											}
-										}
-									}
-								}
-								
-								if (closestKey) {
-									if (detonatorIsPressed && !detonatorWasPressed) {
-										(closestIsPrim?myPrimsServer:myStrokesServer).child(closestKey).remove();
-									} else {
-										highlightingMat = (closestIsPrim?personalPrimsList:personalStrokesList)[closestKey].material;
-										highlightingMat.color = new THREE.Color("hsl(0, 0%, "+Math.round(100*(Math.sin(Date.now()/100)*0.5+0.5))+"%)");
-									}
-								}
-								
 							}
+							
+							if (closestKey) {
+								if (detonatorIsPressed && !detonatorWasPressed) {
+									(closestIsPrim?myPrimsServer:myStrokesServer).child(closestKey).remove();
+								} else {
+									highlightingMat = (closestIsPrim?personalPrimsList:personalStrokesList)[closestKey].material;
+									highlightingMat.color = new THREE.Color("hsl(0, 0%, "+Math.round(100*(Math.sin(Date.now()/100)*0.5+0.5))+"%)");
+								}
+							}
+							
+							
 							
 						}
 						
