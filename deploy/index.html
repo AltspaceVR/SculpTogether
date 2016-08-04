@@ -718,7 +718,7 @@
 							
 							
 							var pointZ = new THREE.Vector3(0,0,1);
-							curPointingInfo.fingerQuat.multiplyVector3(pointZ);
+							pointZ.applyQuaternion(curPointingInfo.fingerQuat);
 							var pointRay = new THREE.Ray( curPointingInfo.fingerPos, pointZ );
 							
 							
