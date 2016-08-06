@@ -14,6 +14,7 @@
 	
 	
 	<script src="controls_leapmotion.js"></script>
+	<script src="controls_cursor.js"></script>
 	
 	
 	<style>
@@ -555,15 +556,19 @@
 			
 			
 			var controlSystems = {
-				leapmotion: SETUP_leapmotion()
+				leapmotion: SETUP_leapmotion(),
+				cursor: SETUP_cursor()
 			};
 			
 			var curControlSystem
 			function changeControlSystem(newControlSystem){
+				if (curControlSystem) curControlSystem.close();
 				curControlSystem = newControlSystem;
-				curControlSystem.modeSwitch(editModeVal);//a little redundant..
+				curControlSystem.open();
+				curControlSystem.modeSwitch(editModeVal);
+				curControlSystem.frameFunc();
 			}
-			changeControlSystem(controlSystems.leapmotion);
+			changeControlSystem(controlSystems.cursor);
 			
 			
 			
@@ -587,6 +592,11 @@
 				
 				
 				if (walkingDead) return;
+				
+				
+				
+				curControlSystem.frameFunc();
+				
 				
 				
 				var highlightingMat;

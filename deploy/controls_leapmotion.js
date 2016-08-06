@@ -212,17 +212,7 @@ function SETUP_leapmotion(){
 			
 		},
 		
-		frameFunc:function(){
-			
-			
-			
-			
-			
-			
-			
-		},
-		
-		getDominantPointing:function(){
+		getDominantPointing:function(forPaint){//forPaint distinction isn't used for leapmotion
 			
 			if (!isHandActive(dominantHand)) return false;
 			
