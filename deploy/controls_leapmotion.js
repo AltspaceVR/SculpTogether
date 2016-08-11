@@ -60,6 +60,7 @@ function SETUP_leapmotion(){
 	//scene.add(pinchDebugMeshes['Right']);
 	
 	
+	
 	function getHandPinch(handName,threshhold){
 		
 		var indexPos = new THREE.Vector3();
@@ -132,58 +133,58 @@ function SETUP_leapmotion(){
 	
 	
 	
-	
-	var detonatorHolder = new THREE.Object3D();
-	scene.add(detonatorHolder);
-	
-	var detonatorBaseCanvas = document.createElement('canvas');
-	detonatorBaseCanvas.width = detonatorBaseCanvas.height = 8;
-	var detonatorBaseCtx = detonatorBaseCanvas.getContext('2d');
-	detonatorBaseCtx.scale(detonatorBaseCanvas.width, detonatorBaseCanvas.height);
-	var detonatorBaseGrad = detonatorBaseCtx.createLinearGradient(0,0,0,1);
-	detonatorBaseGrad.addColorStop(0,"#111");
-	detonatorBaseGrad.addColorStop(1,"#444");
-	detonatorBaseCtx.fillStyle = detonatorBaseGrad;
-	detonatorBaseCtx.fillRect(0,0,1,1);
-	
-	var detonatorRad = toWorldUnits(0.3);
-	var detonatorHeight = toWorldUnits(1.5);
-	var detonatorBase = new THREE.Mesh(
-		new THREE.CylinderGeometry(detonatorRad,detonatorRad,detonatorHeight,12),
-		new THREE.MeshBasicMaterial({map:new THREE.Texture(detonatorBaseCanvas)})
-	);
-	detonatorBase.position.set(
-		0,
-		toWorldUnits(-0.5),
-		toWorldUnits(1.0)
-	);
-	detonatorBase.rotation.set(
-		Math.PI*0.1,
-		0,
-		Math.PI*0.5,
-		'XYZ'
-	);
-	detonatorHolder.add(detonatorBase);
-	
-	var detonatorButtonW = detonatorRad*0.7;
-	var detonatorButtonH = detonatorHeight*0.2;
-	var detonatorButtonUp = new THREE.Mesh(
-		new THREE.CylinderGeometry(detonatorButtonW,detonatorButtonW,detonatorButtonH,12),
-		new THREE.MeshBasicMaterial({color:0x880000})
-	);
-	detonatorButtonUp.position.y = (detonatorHeight+detonatorButtonH)/2;
-	detonatorBase.add(detonatorButtonUp);
-	
-	var detonatorButtonDownH = detonatorButtonH*0.5;
-	var detonatorButtonDown = new THREE.Mesh(
-		new THREE.CylinderGeometry(detonatorButtonW,detonatorButtonW*1.3,detonatorButtonDownH,12),
-		new THREE.MeshBasicMaterial({color:0xFF0000})
-	);
-	detonatorButtonDown.position.y = (detonatorHeight+detonatorButtonDownH)*0.5;
-	detonatorBase.add(detonatorButtonDown);
-	
-	objHide(detonatorHolder);
-	
+	if (scene) {
+		var detonatorHolder = new THREE.Object3D();
+		scene.add(detonatorHolder);
+		
+		var detonatorBaseCanvas = document.createElement('canvas');
+		detonatorBaseCanvas.width = detonatorBaseCanvas.height = 8;
+		var detonatorBaseCtx = detonatorBaseCanvas.getContext('2d');
+		detonatorBaseCtx.scale(detonatorBaseCanvas.width, detonatorBaseCanvas.height);
+		var detonatorBaseGrad = detonatorBaseCtx.createLinearGradient(0,0,0,1);
+		detonatorBaseGrad.addColorStop(0,"#111");
+		detonatorBaseGrad.addColorStop(1,"#444");
+		detonatorBaseCtx.fillStyle = detonatorBaseGrad;
+		detonatorBaseCtx.fillRect(0,0,1,1);
+		
+		var detonatorRad = toWorldUnits(0.3);
+		var detonatorHeight = toWorldUnits(1.5);
+		var detonatorBase = new THREE.Mesh(
+			new THREE.CylinderGeometry(detonatorRad,detonatorRad,detonatorHeight,12),
+			new THREE.MeshBasicMaterial({map:new THREE.Texture(detonatorBaseCanvas)})
+		);
+		detonatorBase.position.set(
+			0,
+			toWorldUnits(-0.5),
+			toWorldUnits(1.0)
+		);
+		detonatorBase.rotation.set(
+			Math.PI*0.1,
+			0,
+			Math.PI*0.5,
+			'XYZ'
+		);
+		detonatorHolder.add(detonatorBase);
+		
+		var detonatorButtonW = detonatorRad*0.7;
+		var detonatorButtonH = detonatorHeight*0.2;
+		var detonatorButtonUp = new THREE.Mesh(
+			new THREE.CylinderGeometry(detonatorButtonW,detonatorButtonW,detonatorButtonH,12),
+			new THREE.MeshBasicMaterial({color:0x880000})
+		);
+		detonatorButtonUp.position.y = (detonatorHeight+detonatorButtonH)/2;
+		detonatorBase.add(detonatorButtonUp);
+		
+		var detonatorButtonDownH = detonatorButtonH*0.5;
+		var detonatorButtonDown = new THREE.Mesh(
+			new THREE.CylinderGeometry(detonatorButtonW,detonatorButtonW*1.3,detonatorButtonDownH,12),
+			new THREE.MeshBasicMaterial({color:0xFF0000})
+		);
+		detonatorButtonDown.position.y = (detonatorHeight+detonatorButtonDownH)*0.5;
+		detonatorBase.add(detonatorButtonDown);
+		
+		objHide(detonatorHolder);
+	}
 	
 	
 	
@@ -199,8 +200,23 @@ function SETUP_leapmotion(){
 	
 	var oldDetonatorPressed = false;
 	
+	var hasEverBeenAvailable = false;
+	
 	
 	return {
+		
+		isAvailable:function(){
+			if (isHandActive('Left') || isHandActive('Right')) hasEverBeenAvailable = true;
+			return hasEverBeenAvailable;
+		},
+		
+		open:function(){
+			
+		},
+		
+		close:function(){
+			objHide(detonatorHolder);
+		},
 		
 		modeSwitch:function(newMode){
 			
@@ -209,6 +225,10 @@ function SETUP_leapmotion(){
 					objHide(detonatorHolder);
 				break;
 			}
+			
+		},
+		
+		frameFunc:function(){
 			
 		},
 		

@@ -10,11 +10,24 @@
 	<script src="http://sdk.altvr.com/libs/altspace.js/0.14.1/altspace.min.js"></script>
 	
 	
+	
+	<script src="controls_leapmotion.js"></script>
+	<script src="controls_cursor.js"></script>
+	
+	
 	<style>
 		body{
 			background-color: #444;
 			font-family: sans-serif;
 		}
+		
+		
+		#enable{
+			background-color: #F8F;
+			display: inline-block;
+		}
+		
+		
 		#title{
 			text-align: center;
 			font-size: 48px;
@@ -125,7 +138,9 @@
 </head>
 <body>
 	<div id="title">SculpTogether Palette</div>
-	<table><tr>
+	<div id="modeDisplay">cursor mode</div>
+	<div id="enable">Enable cursor drawing</div>
+	<table id="controls"><tr>
 		<td>
 			<div class="sectionHeader">Select color:</div>
 			<div id="hueSlider" class="colSlider">
@@ -171,6 +186,7 @@
 	<script>
 		
 		
+		var scene;//LEAVE EMPTY! the control scripts test for it, but it has to be declared
 		
 		
 		function padTimeVal(num){
@@ -193,23 +209,75 @@
 		console.log("start time",now.getHours()+":"+now.getMinutes()+":"+now.getSeconds());
 		
 		
-		var userInfo, firebaseInfo;
+		var skeletonInfo, userInfo, firebaseInfo;
 		
-		altspace.getUser().then(function(_userInfo){
-			userInfo = _userInfo;
+		altspace.getThreeJSTrackingSkeleton().then(function(_skeletonInfo){
+			skeletonInfo = _skeletonInfo;
 			
-			altspace.utilities.sync.connect({
-				authorId:'ravenworks',
-				appId:'sculpTogether',
-				baseRefUrl:"https://ravenworks-altspace-test.firebaseio.com"
-			}).then(function(_firebaseInfo){
-				firebaseInfo = _firebaseInfo;
+			altspace.getUser().then(function(_userInfo){
+				userInfo = _userInfo;
 				
-				setTimeout(browserSetup,0);
+				altspace.utilities.sync.connect({
+					authorId:'ravenworks',
+					appId:'sculpTogether',
+					baseRefUrl:"https://ravenworks-altspace-test.firebaseio.com"
+				}).then(function(_firebaseInfo){
+					firebaseInfo = _firebaseInfo;
+					
+					setTimeout(browserSetup,0);
+					
+				});
 				
 			});
 			
 		});
+		
+		
+		
+		
+		var modeDisplayDiv = document.getElementById('modeDisplay');
+		var enableButton = document.getElementById('enable');
+		var controlsDiv = document.getElementById('controls');
+		
+		var controlSystems = {
+			leapmotion: SETUP_leapmotion(),
+			cursor: SETUP_cursor()
+		};
+		
+		var curControlSystem = controlSystems.cursor;//only safe assumption
+		
+		function changeControlSystem(newControlSystem){
+			
+			switch(curControlSystem){
+				case controlSystems.cursor:
+					enableButton.visibility = "hidden";
+					controlsDiv.visibility = "visible";
+				break;
+			}
+			
+			curControlSystem = newControlSystem;
+			
+			switch(curControlSystem){
+				case controlSystems.leapmotion:
+					modeDisplayDiv.innerHTML = "leap motion mode";
+				break;
+				
+			}
+			
+		}
+		
+		function detectControlSystemMode(){
+			
+			if (curControlSystem != controlSystems.leapmotion){//always leapmotion if possible, so, no reason to keep searching then
+				
+				if (controlSystems.leapmotion.isAvailable()) {
+					changeControlSystem(controlSystems.leapmotion);
+				}
+				
+			}
+			
+			
+		}
 		
 		
 		
@@ -368,6 +436,23 @@
 			
 			
 			
+			// on load, painting mode will ALWAYS be 'cursor' until established otherwise
+			
+			var myEnableServer = myUserServer.child('enable');
+			
+			var enabled = false;
+			controlsDiv.style.visibility = "hidden";
+			
+			enableButton.addEventListener('click',function(){
+				enabled = !enabled;
+				enableButton.innerHTML = (enabled?"dis":"en")+"able cursor drawing";
+				controlsDiv.style.visibility = enabled?"visible":"hidden";
+				myEnableServer.set(enabled);
+			});
+			
+			
+			
+			
 			var myNextColServer = myUserServer.child('nextCol');
 			
 			function setUpSlider(id,defaultVal){
@@ -495,6 +580,15 @@
 			makeRadioSet('nextShape','shapeOptionsHolder',['ball','cube']);
 			makeRadioSet('editMode','editOptionsHolder',['draw','erase']);
 			makeRadioSet('handChoice','handOptionsHolder',['right','left']);
+			
+			
+			
+			
+			function frameFunc(){
+				requestAnimationFrame(frameFunc);
+				detectControlSystemMode();
+			}
+			frameFunc();
 			
 			
 		}

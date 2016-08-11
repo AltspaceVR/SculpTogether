@@ -1,37 +1,46 @@
 function SETUP_cursor(){
 	
-	var clickCatcherHolder = new THREE.Object3D();
-	scene.add(clickCatcherHolder);
-	objHide(clickCatcherHolder);
-	
-	var clickCatcherMaterial = new THREE.MeshBasicMaterial({visible:false});
-	var catcherSides = 8;
-	var catcherRad = toWorldUnits(40);
-	var catcherHeight = toWorldUnits(40);
-	var clickCatcherSideGeom = new THREE.PlaneGeometry(catcherRad*2,catcherHeight);//this is wider than necessary but that doesn't hurt anything
-	
-	var hitzoneScaleFactor = 1/0.6;
-	
-	for(var i=0; i<catcherSides; i++){
-		var catcherSide = new THREE.Mesh(clickCatcherSideGeom,clickCatcherMaterial);
-		var myAng = (i/catcherSides)*Math.PI*2;
-		catcherSide.position.set(
-			Math.cos(myAng)*catcherRad,
-			0,
-			Math.sin(myAng)*catcherRad
-		);
-		catcherSide.rotation.y = -myAng-Math.PI/2;
-		catcherSide.scale.set(hitzoneScaleFactor,hitzoneScaleFactor,hitzoneScaleFactor);
-		clickCatcherHolder.add(catcherSide);
-	}
-	
-	var clickCatcherCapGeom = new THREE.PlaneGeometry(catcherRad*2,catcherRad*2);
-	for(var i=0; i<2; i++){
-		var clickCatcherCap = new THREE.Mesh(clickCatcherCapGeom,clickCatcherMaterial);
-		clickCatcherCap.rotation.x = Math.PI/2 + Math.PI*i;
-		clickCatcherCap.position.y = catcherHeight/2 * ((i-0.5)*-2);
-		clickCatcherCap.scale.set(hitzoneScaleFactor,hitzoneScaleFactor,hitzoneScaleFactor);
-		clickCatcherHolder.add(clickCatcherCap);
+	if (scene) {
+		
+		var clickCatcherHolder = new THREE.Object3D();
+		scene.add(clickCatcherHolder);
+		objHide(clickCatcherHolder);
+		
+		var clickCatcherMaterial = new THREE.MeshBasicMaterial({visible:false});//map:THREE.ImageUtils.loadTexture("debug.png")});//
+		var catcherSides = 8;
+		var catcherRad = toWorldUnits(40);
+		var catcherHeight = toWorldUnits(40);
+		var clickCatcherSideGeom = new THREE.PlaneGeometry(catcherRad*2,catcherHeight);//this is wider than necessary but that doesn't hurt anything
+		
+		var hitzoneScaleFactor = 1/0.6;
+		
+		for(var i=0; i<catcherSides; i++){
+			var catcherSide = new THREE.Mesh(clickCatcherSideGeom,clickCatcherMaterial);
+			var myAng = (i/catcherSides)*Math.PI*2;
+			catcherSide.position.set(
+				Math.cos(myAng)*catcherRad,
+				0,
+				Math.sin(myAng)*catcherRad
+			);
+			catcherSide.rotation.y = -myAng-Math.PI/2;
+			catcherSide.scale.set(hitzoneScaleFactor,hitzoneScaleFactor,hitzoneScaleFactor);
+			clickCatcherHolder.add(catcherSide);
+		}
+		
+		var clickCatcherCapGeom = new THREE.PlaneGeometry(catcherRad*2,catcherRad*2);
+		var clickCatcherTop = new THREE.Mesh(clickCatcherCapGeom,clickCatcherMaterial);
+		clickCatcherTop.rotation.x = Math.PI/2;
+		clickCatcherTop.position.y = catcherHeight/2;
+		clickCatcherTop.scale.set(hitzoneScaleFactor,hitzoneScaleFactor,hitzoneScaleFactor);
+		clickCatcherHolder.add(clickCatcherTop);
+		
+		var clickCatcherFloor = new THREE.Mesh(clickCatcherCapGeom,clickCatcherMaterial);
+		clickCatcherFloor.rotation.x = -Math.PI/2;
+		clickCatcherFloor.position.y = -enclosureInfo.innerHeight/2 + toWorldUnits(0.5);
+		clickCatcherFloor.scale.set(hitzoneScaleFactor,hitzoneScaleFactor,hitzoneScaleFactor);
+		scene.add(clickCatcherFloor);
+		objHide(clickCatcherFloor);
+		
 	}
 	
 	
@@ -59,20 +68,35 @@ function SETUP_cursor(){
 	
 	
 	var curMode;
+	var currentlyEnabled;
 	
 	return {
+		
+		updateEnabledness:function(isEnabled){
+			currentlyEnabled = isEnabled;
+			if (currentlyEnabled) {
+				objShow(clickCatcherHolder);
+				objShow(clickCatcherFloor);
+			} else {
+				objHide(clickCatcherHolder);
+				objHide(clickCatcherFloor);
+			}
+		},
 		
 		open:function(){
 			cursorUpFunc();
 			objShow(clickCatcherHolder);
+			objShow(clickCatcherFloor);
 			
 			scene.addEventListener('cursorup',cursorUpFunc);
 			scene.addEventListener('cursordown',cursorDownFunc);
 			scene.addEventListener('cursormove',cursorMoveFunc);
+			
 		},
 		
 		close:function(){
 			objHide(clickCatcherHolder);
+			objHide(clickCatcherFloor);
 			
 			scene.removeEventListener('cursorup',cursorUpFunc);
 			scene.removeEventListener('cursordown',cursorDownFunc);
@@ -95,7 +119,11 @@ function SETUP_cursor(){
 		},
 		
 		frameFunc:function(){
-			clickCatcherHolder.position.copy(skeletonInfo.getJoint('Head').position);
+			if (currentlyEnabled) {
+				clickCatcherHolder.position.copy(skeletonInfo.getJoint('Head').position);
+				clickCatcherFloor.position.x = clickCatcherHolder.position.x;
+				clickCatcherFloor.position.z = clickCatcherHolder.position.z;
+			}
 		},
 		
 		getDominantPointing:function(){

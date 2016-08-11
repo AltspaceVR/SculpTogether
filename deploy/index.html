@@ -123,7 +123,9 @@
 		return x*ppm /17.873589;//hardcoded divisor; numbers were tuned to that room's ppm
 	}
 	
+	// leap motion:
 	var dominantHand, otherHand;
+	
 	
 	
 	
@@ -495,6 +497,10 @@
 			
 			var cubeInProgress = null;
 			
+			myDrawingServer.child("enable").on("value",function(snapshot){
+				if (curControlSystem == controlSystems.cursor) curControlSystem.updateEnabledness( snapshot.val() );
+			});
+			
 			var nextColVal = {h:0,s:0,l:0};//should be overwritten by firebase almost immediately, but at least it won't crash if not
 			myDrawingServer.child("nextCol").on("value",function(snapshot){
 				
@@ -560,7 +566,7 @@
 				cursor: SETUP_cursor()
 			};
 			
-			var curControlSystem
+			var curControlSystem;
 			function changeControlSystem(newControlSystem){
 				if (curControlSystem) curControlSystem.close();
 				curControlSystem = newControlSystem;
@@ -571,6 +577,21 @@
 			changeControlSystem(controlSystems.cursor);
 			
 			
+			
+			// another redundant thing I should move into its own file
+			function detectControlSystemMode(){
+				
+				if (curControlSystem != controlSystems.leapmotion){//always leapmotion if possible, so, no reason to keep searching then
+					
+					if (controlSystems.leapmotion.isAvailable()) {
+						changeControlSystem(controlSystems.leapmotion);
+					}
+					
+				}
+				
+				
+			}
+			//
 			
 			
 			
@@ -592,6 +613,10 @@
 				
 				
 				if (walkingDead) return;
+				
+				
+				
+				detectControlSystemMode();
 				
 				
 				
