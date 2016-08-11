@@ -46,6 +46,7 @@ function SETUP_cursor(){
 	
 	
 	var cursorIsDown = false;
+	var cursorWasDown = false;
 	var lastRay;
 	var lastPos;
 	var lastQuat;
@@ -70,10 +71,24 @@ function SETUP_cursor(){
 	var curMode;
 	var currentlyEnabled;
 	
+	
+	
+	function getCursorWorld(){
+		return lastRay.at(toWorldUnits(40));
+	}
+	function lookAtQuat(gap,up){
+		// okay this is HORRIBLY convoluted but it'll do!!
+		var lookMtx = new THREE.Matrix4().lookAt(zeroVec,gap,up);
+		var lookQuat = new THREE.Quaternion().setFromRotationMatrix(lookMtx);
+		return lookQuat;
+	}
+	
+	
 	return {
 		
 		updateEnabledness:function(isEnabled){
 			currentlyEnabled = isEnabled;
+			console.log("enabled!!!");
 			if (currentlyEnabled) {
 				objShow(clickCatcherHolder);
 				objShow(clickCatcherFloor);
@@ -105,13 +120,28 @@ function SETUP_cursor(){
 		
 		modeSwitch:function(newMode){
 			
+			switch(curMode){
+				case 0://draw
+					
+				break;
+				case 1://prim
+				
+				break;
+				case 2://erase
+				
+				break;
+			}
+			
 			curMode = newMode;
 			
 			switch(newMode){
 				case 0://draw
 					
 				break;
-				case 1://erase
+				case 1://prim
+				
+				break;
+				case 2://erase
 				
 				break;
 			}
@@ -131,7 +161,7 @@ function SETUP_cursor(){
 			if (!cursorIsDown) return false;
 			
 			
-			var fingerPos = lastRay.at(toWorldUnits(40));
+			var fingerPos = getCursorWorld();
 			var fingerQuat = new THREE.Quaternion();
 			
 			switch(curMode){
@@ -140,10 +170,8 @@ function SETUP_cursor(){
 				
 				case 0://draw
 					if (lastPos) {
-						// okay this is HORRIBLY convoluted but it'll do!!
 						var gapVect = new THREE.Vector3().subVectors(fingerPos,lastPos);
-						var lookMtx = new THREE.Matrix4().lookAt(zeroVec,gapVect,lastUnit);
-						var lookQuat = new THREE.Quaternion().setFromRotationMatrix(lookMtx);
+						var lookQuat = lookAtQuat(gapVect,lastUnit);
 						lastUnit = new THREE.Vector3(0,1,0).applyQuaternion(lookQuat);
 						fingerQuat.setFromUnitVectors(lastUnit,upUnit);//up isn't used anyway; this definitely could be cleaned way way up
 					} else {
@@ -153,7 +181,10 @@ function SETUP_cursor(){
 					lastPos = fingerPos;
 					lastQuat = fingerQuat;
 				break;
-				case 1://erase
+				case 1://prim
+					
+				break;
+				case 2://erase
 					fingerQuat.setFromUnitVectors(forwardUnit,lastRay.direction);
 				break;
 				
@@ -168,29 +199,42 @@ function SETUP_cursor(){
 		},
 		
 		getBothPinching:function(){
-			return false;
-			/*
-			var pinchThreshhold = 1;
 			
-			if (!isHandActive('Right')) return false;
-			if (!isHandActive('Left')) return false;
+			if (curMode != 1) return false;
 			
-			var rightPinch = getHandPinch('Right',pinchThreshhold);
-			if (!rightPinch) return false;
+			// keeping cursorWasDown logic here isn't going to be safe if other functions need the same check
 			
-			var leftPinch = getHandPinch('Left',pinchThreshhold);
-			if (!leftPinch) return false;
+			if (!cursorIsDown) {
+				cursorWasDown = false;
+				return false;
+			}
 			
-			var rightQuat = skeletonInfo.getJoint('Hand','Right').quaternion;
-			var leftQuat = skeletonInfo.getJoint('Hand','Left').quaternion;
+			if (!cursorWasDown) {
+				primMidpoint = getCursorWorld();
+			}
+			cursorWasDown = true;
+			
+			
+			var rightPt = getCursorWorld();
+			if (rightPt.x == primMidpoint.x && rightPt.y == primMidpoint.y && rightPt.z == primMidpoint.z) {// to avoid 0,0,0 altspace error
+				rightPt.x += 0.01;
+			}
+			var gapToMid = new THREE.Vector3().subVectors(rightPt,primMidpoint);
+			var leftPt = new THREE.Vector3().subVectors(primMidpoint,gapToMid);
+			
+			var rightQuat = lookAtQuat(gapToMid,upUnit);
+			gapToMid.negate();
+			var leftQuat = lookAtQuat(gapToMid,upUnit);
+			
 			
 			return {
-				rightPinch:rightPinch,
-				leftPinch:leftPinch,
+				rightPinch:rightPt,
+				leftPinch:leftPt,
 				rightQuat:rightQuat,
 				leftQuat:leftQuat
 			};
-			*/
+			
+			
 		},
 		
 		

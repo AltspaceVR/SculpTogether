@@ -627,117 +627,129 @@
 				var highlightingMat;
 				
 				
+				
+				
+				function tryDrawing(){
+					
+					var curPointingInfo = curControlSystem.getDominantPointing();
+					if (curPointingInfo) {
+						
+						if (!curPointsServer) {
+							
+							var curStrokeServer = myStrokesServer.push({color:nextColVal});
+							curPointsServer = curStrokeServer.child('points');
+							
+						}
+						
+						
+						
+						if ( !lastPos || (curPointingInfo.fingerPos.distanceTo(lastPos) > toWorldUnits(0.1)) ) {
+							
+							var strokeThickness = 0.2 + strokeWidthFrac*1.6;
+							var otherPos = offPtInDir(curPointingInfo.fingerPos,curPointingInfo.fingerQuat,toWorldUnits(strokeThickness));
+							
+							var newPoint = curPointsServer.push();
+							newPoint.set({vertices:[curPointingInfo.fingerPos,otherPos]});
+							
+						}
+						
+						lastPos = curPointingInfo.fingerPos;
+						
+					} else {
+						
+						curPointsServer = null;
+						
+					}
+					
+				}
+				
+				function tryPrimming(){
+					
+					var curPinchSpreadInfo = curControlSystem.getBothPinching();
+					if (curPinchSpreadInfo) {
+						
+						
+						
+						var pinchSpace = curPinchSpreadInfo.rightPinch.distanceTo(curPinchSpreadInfo.leftPinch);
+						
+						var dataToUpdate = {};
+						
+						if (!cubeInProgress && (pinchSpace < toWorldUnits(1))) {
+							
+							cubeInProgress = myPrimsServer.push();
+							dataToUpdate.typeIndex = nextShapeVal;
+							dataToUpdate.color = nextColVal;
+							
+						}
+						
+						if (cubeInProgress) {
+							
+							//
+							var avgQuat = new THREE.Quaternion();
+							THREE.Quaternion.slerp(
+								curPinchSpreadInfo.rightQuat,
+								curPinchSpreadInfo.leftQuat,
+							avgQuat,0.5);
+							
+							var handUp = new THREE.Vector3(0,1,0);
+							handUp.applyQuaternion(avgQuat);
+							
+							var lookWorkMtx = new THREE.Matrix4();
+							lookWorkMtx.lookAt(
+								curPinchSpreadInfo.leftPinch,
+								curPinchSpreadInfo.rightPinch,
+								handUp
+							);
+							
+							var rotEuler = new THREE.Euler();
+							rotEuler.setFromRotationMatrix(lookWorkMtx);
+							
+							//
+							
+							dataToUpdate.transform = [
+								// position:
+								(curPinchSpreadInfo.rightPinch.x + curPinchSpreadInfo.leftPinch.x)/2,
+								(curPinchSpreadInfo.rightPinch.y + curPinchSpreadInfo.leftPinch.y)/2,
+								(curPinchSpreadInfo.rightPinch.z + curPinchSpreadInfo.leftPinch.z)/2,
+								// rotation:
+								rotEuler.x,rotEuler.y,rotEuler.z,
+								//scale:
+								pinchSpace,pinchSpace,pinchSpace
+							];
+							
+							cubeInProgress.update(dataToUpdate);
+							
+						}
+						
+					} else {
+						
+						cubeInProgress = null;
+						
+					}
+					
+				}
+				
+				
+				
 				switch(editModeVal){
 					
 					
 					case 0://draw
 						
-						
-						
-						
-						
-						var curPointingInfo = curControlSystem.getDominantPointing();
-						if (curPointingInfo) {
-							
-							if (!curPointsServer) {
-								
-								var curStrokeServer = myStrokesServer.push({color:nextColVal});
-								curPointsServer = curStrokeServer.child('points');
-								
-							}
-							
-							
-							
-							if ( !lastPos || (curPointingInfo.fingerPos.distanceTo(lastPos) > toWorldUnits(0.1)) ) {
-								
-								var strokeThickness = 0.2 + strokeWidthFrac*1.6;
-								var otherPos = offPtInDir(curPointingInfo.fingerPos,curPointingInfo.fingerQuat,toWorldUnits(strokeThickness));
-								
-								var newPoint = curPointsServer.push();
-								newPoint.set({vertices:[curPointingInfo.fingerPos,otherPos]});
-								
-							}
-							
-							lastPos = curPointingInfo.fingerPos;
-							
-						} else {
-							
-							curPointsServer = null;
-							
-						}
-						
-						
-						
-						
-						var curPinchSpreadInfo = curControlSystem.getBothPinching();
-						if (curPinchSpreadInfo) {
-							
-							
-							
-							var pinchSpace = curPinchSpreadInfo.rightPinch.distanceTo(curPinchSpreadInfo.leftPinch);
-							
-							var dataToUpdate = {};
-							
-							if (!cubeInProgress && (pinchSpace < toWorldUnits(1))) {
-								
-								cubeInProgress = myPrimsServer.push();
-								dataToUpdate.typeIndex = nextShapeVal;
-								dataToUpdate.color = nextColVal;
-								
-							}
-							
-							if (cubeInProgress) {
-								
-								//
-								var avgQuat = new THREE.Quaternion();
-								THREE.Quaternion.slerp(
-									curPinchSpreadInfo.rightQuat,
-									curPinchSpreadInfo.leftQuat,
-								avgQuat,0.5);
-								
-								var handUp = new THREE.Vector3(0,1,0);
-								handUp.applyQuaternion(avgQuat);
-								
-								var lookWorkMtx = new THREE.Matrix4();
-								lookWorkMtx.lookAt(
-									curPinchSpreadInfo.leftPinch,
-									curPinchSpreadInfo.rightPinch,
-									handUp
-								);
-								
-								var rotEuler = new THREE.Euler();
-								rotEuler.setFromRotationMatrix(lookWorkMtx);
-								
-								//
-								
-								dataToUpdate.transform = [
-									// position:
-									(curPinchSpreadInfo.rightPinch.x + curPinchSpreadInfo.leftPinch.x)/2,
-									(curPinchSpreadInfo.rightPinch.y + curPinchSpreadInfo.leftPinch.y)/2,
-									(curPinchSpreadInfo.rightPinch.z + curPinchSpreadInfo.leftPinch.z)/2,
-									// rotation:
-									rotEuler.x,rotEuler.y,rotEuler.z,
-									//scale:
-									pinchSpace,pinchSpace,pinchSpace
-								];
-								
-								cubeInProgress.update(dataToUpdate);
-								
-							}
-							
-						} else {
-							
-							cubeInProgress = null;
-							
-						}
-						
-						
-						
+						tryDrawing();
+						tryPrimming();//should be automatically discarded by prim-only control systems...
 						
 					break;
 					
 					
-					case 1://erase
+					case 1://prim-only
+						
+						tryPrimming();
+						
+					break;
+					
+					
+					case 2://erase
 						
 						// oof this is pretty hard-codey right here
 						curPointsServer = null;

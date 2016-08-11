@@ -202,6 +202,8 @@ function SETUP_leapmotion(){
 	
 	var hasEverBeenAvailable = false;
 	
+	var curMode;
+	
 	
 	return {
 		
@@ -220,9 +222,29 @@ function SETUP_leapmotion(){
 		
 		modeSwitch:function(newMode){
 			
+			switch(curMode){
+				case 0://draw
+				
+				break;
+				case 1://prim only (should be impossible with these controls!)
+				
+				break;
+				case 2://erase
+					objHide(detonatorHolder);
+				break;
+			}
+			
+			curMode = newMode;
+			
 			switch(newMode){
 				case 0://draw
-					objHide(detonatorHolder);
+					
+				break;
+				case 1://prim only (should be impossible with these controls!)
+				
+				break;
+				case 2://erase
+					objShow(detonatorHolder);
 				break;
 			}
 			
@@ -232,7 +254,7 @@ function SETUP_leapmotion(){
 			
 		},
 		
-		getDominantPointing:function(forPaint){//forPaint distinction isn't used for leapmotion
+		getDominantPointing:function(){
 			
 			if (!isHandActive(dominantHand)) return false;
 			

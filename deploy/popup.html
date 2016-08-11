@@ -239,6 +239,8 @@
 		var enableButton = document.getElementById('enable');
 		var controlsDiv = document.getElementById('controls');
 		
+		var editModeOptionInfo;
+		
 		var controlSystems = {
 			leapmotion: SETUP_leapmotion(),
 			cursor: SETUP_cursor()
@@ -260,6 +262,10 @@
 			switch(curControlSystem){
 				case controlSystems.leapmotion:
 					modeDisplayDiv.innerHTML = "leap motion mode";
+					
+					editModeOptionInfo.myOptions[1].style.display = "none";
+					if (editModeOptionInfo.getCurVal() == 1) editModeOptionInfo.optionNumClick(0);//switch from "prim" to "draw+prim"
+					
 				break;
 				
 			}
@@ -567,18 +573,26 @@
 				}
 				for(var i=0; i<labelsList.length; i++) makeOption(labelsList[i]);
 				
+				var curOptionChoice;
 				function optionNumClick(clickedIndex){
 					for(var i=0; i<myOptions.length; i++){
 						myOptions[i].className = "radioOption "+((i==clickedIndex)?"roSelected":"roUnselected");
 					}
+					curOptionChoice = clickedIndex;
 					myOptionServer.set(clickedIndex);
 				}
 				optionNumClick(0);
 				
+				return {
+					optionNumClick:optionNumClick,
+					myOptions:myOptions,
+					getCurVal:function(){return curOptionChoice;}
+				};
+				
 			}
 			
 			makeRadioSet('nextShape','shapeOptionsHolder',['ball','cube']);
-			makeRadioSet('editMode','editOptionsHolder',['draw','erase']);
+			editModeOptionInfo = makeRadioSet('editMode','editOptionsHolder',['draw','prim','erase']);
 			makeRadioSet('handChoice','handOptionsHolder',['right','left']);
 			
 			
