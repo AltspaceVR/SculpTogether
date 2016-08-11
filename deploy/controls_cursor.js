@@ -158,10 +158,8 @@ function SETUP_cursor(){
 		
 		getDominantPointing:function(){
 			
-			if (!cursorIsDown) return false;
 			
-			
-			var fingerPos = getCursorWorld();
+			var fingerPos;
 			var fingerQuat = new THREE.Quaternion();
 			
 			switch(curMode){
@@ -169,6 +167,8 @@ function SETUP_cursor(){
 				// it seriously might make way more sense to send a ray rather than a position + quaternion...
 				
 				case 0://draw
+					if (!cursorIsDown) return false;
+					fingerPos = getCursorWorld();
 					if (lastPos) {
 						var gapVect = new THREE.Vector3().subVectors(fingerPos,lastPos);
 						var lookQuat = lookAtQuat(gapVect,lastUnit);
@@ -185,6 +185,7 @@ function SETUP_cursor(){
 					
 				break;
 				case 2://erase
+					fingerPos = lastRay.origin.clone();
 					fingerQuat.setFromUnitVectors(forwardUnit,lastRay.direction);
 				break;
 				
@@ -193,7 +194,8 @@ function SETUP_cursor(){
 			
 			return {
 				fingerPos:fingerPos,
-				fingerQuat:fingerQuat
+				fingerQuat:fingerQuat,
+				pointSafeDist:41//cutoff for erasure; greater in cursor mode since the ray is from head not hand
 			};
 			
 		},
@@ -238,39 +240,8 @@ function SETUP_cursor(){
 		},
 		
 		
-		// also animates detonator attachment, in this case! maybe a weird place to put it, but it gets called every frame while relevant, so w/e
 		getDetonatorPressed:function(){
-			return false;
-			/*
-			
-			if (isHandActive(otherHand)) {
-				
-				var detonatorHandInfo = skeletonInfo.getJoint('Hand',otherHand);
-				
-				//this is NOT strictly necessary since position is how it's being hidden right now anyway,
-				//but for the sake of supporting changes to the show/hide system, let's put it in
-				objShow(detonatorHolder);
-				
-				detonatorHolder.position.copy(detonatorHandInfo.position);
-				detonatorHolder.quaternion.copy(detonatorHandInfo.quaternion);
-				
-				detonatorBase.rotation.y = (otherHand == 'Left') ? 0 : Math.PI ;
-				
-				detonatorIsPressed = !isThumbUp(otherHand);
-				detonatorButtonUp.visible = !detonatorIsPressed;
-				detonatorButtonDown.visible = detonatorIsPressed;
-				
-				oldDetonatorPressed = detonatorIsPressed;
-				
-			} else {
-				
-				objHide(detonatorHolder);
-				
-			}
-			
-			return oldDetonatorPressed;
-			
-			*/
+			return cursorIsDown;
 		}
 		
 		

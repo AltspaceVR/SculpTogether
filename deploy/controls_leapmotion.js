@@ -271,7 +271,8 @@ function SETUP_leapmotion(){
 			
 			return {
 				fingerPos:fingerPos,
-				fingerQuat:fingerQuat
+				fingerQuat:fingerQuat,
+				pointSafeDist:2
 			};
 			
 		},

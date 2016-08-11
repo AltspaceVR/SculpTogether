@@ -780,7 +780,7 @@
 									var centerGap = curPointingInfo.fingerPos.distanceTo(curPrim.position);
 									//makes it a bit more accurate in case of giant shapes, but, doesn't account for cubes, or smooshed shapes once that's added
 									centerGap -= curPrim.scale.x * 0.5;
-									if (centerGap < toWorldUnits(2.0)) {
+									if (centerGap < toWorldUnits(curPointingInfo.pointSafeDist)) {
 										if (centerGap < closestDist) {
 											closestDist = centerGap;
 											closestKey = primKey;
@@ -797,7 +797,7 @@
 									if (pointRay.isIntersectionBox(curMesh.boundBox)) {
 										//see above for how rough this is
 										var centerGap = curPointingInfo.fingerPos.distanceTo(curMesh.boundBox.center());
-										if (centerGap < toWorldUnits(2.0)) {
+										if (centerGap < toWorldUnits(curPointingInfo.pointSafeDist)) {
 											if (centerGap < closestDist) {
 												closestDist = centerGap;
 												closestKey = strokeKey;
