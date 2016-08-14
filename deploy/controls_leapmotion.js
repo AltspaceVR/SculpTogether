@@ -135,6 +135,7 @@ function SETUP_leapmotion(){
 	
 	if (scene) {
 		var detonatorHolder = new THREE.Object3D();
+		detonatorHolder.name = "DETONATOR HOLDER";
 		scene.add(detonatorHolder);
 		
 		var detonatorBaseCanvas = document.createElement('canvas');
@@ -206,6 +207,8 @@ function SETUP_leapmotion(){
 	
 	
 	return {
+		
+		label:"leapmotion",
 		
 		isAvailable:function(){
 			if (isHandActive('Left') || isHandActive('Right')) hasEverBeenAvailable = true;

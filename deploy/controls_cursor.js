@@ -3,6 +3,7 @@ function SETUP_cursor(){
 	if (scene) {
 		
 		var clickCatcherHolder = new THREE.Object3D();
+		clickCatcherHolder.name = "CLICK CATCHER HOLDER";
 		scene.add(clickCatcherHolder);
 		objHide(clickCatcherHolder);
 		
@@ -10,6 +11,7 @@ function SETUP_cursor(){
 		var catcherSides = 8;
 		var catcherRad = toWorldUnits(40);
 		var catcherHeight = toWorldUnits(40);
+		console.log("catcherRad",catcherRad);
 		var clickCatcherSideGeom = new THREE.PlaneGeometry(catcherRad*2,catcherHeight);//this is wider than necessary but that doesn't hurt anything
 		
 		var hitzoneScaleFactor = 1/0.6;
@@ -38,6 +40,7 @@ function SETUP_cursor(){
 		clickCatcherFloor.rotation.x = -Math.PI/2;
 		clickCatcherFloor.position.y = -enclosureInfo.innerHeight/2 + toWorldUnits(0.5);
 		clickCatcherFloor.scale.set(hitzoneScaleFactor,hitzoneScaleFactor,hitzoneScaleFactor);
+		clickCatcherFloor.name = "CLICK CATCHER FLOOR";
 		scene.add(clickCatcherFloor);
 		objHide(clickCatcherFloor);
 		
@@ -85,6 +88,8 @@ function SETUP_cursor(){
 	
 	
 	return {
+		
+		label:"cursor",
 		
 		updateEnabledness:function(isEnabled){
 			currentlyEnabled = isEnabled;

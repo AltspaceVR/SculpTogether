@@ -11,8 +11,12 @@
 	
 	
 	
-	<script src="controls_leapmotion.js"></script>
 	<script src="controls_cursor.js"></script>
+	<script src="controls_leapmotion.js"></script>
+	<script src="controls_tracked.js"></script>
+	
+	<script src="shared.js"></script>
+	
 	
 	
 	<style>
@@ -188,6 +192,8 @@
 		
 		var scene;//LEAVE EMPTY! the control scripts test for it, but it has to be declared
 		
+		initControlSystems();
+		
 		
 		function padTimeVal(num){
 			var floorNum = Math.floor(num);
@@ -241,50 +247,45 @@
 		
 		var editModeOptionInfo;
 		
-		var controlSystems = {
-			leapmotion: SETUP_leapmotion(),
-			cursor: SETUP_cursor()
-		};
+		var myUserPrefsServer;
+		var myExpectTrackedServer;
+		
+		
 		
 		var curControlSystem = controlSystems.cursor;//only safe assumption
 		
 		function changeControlSystem(newControlSystem){
 			
+			console.log("] going from "+curControlSystem.label+" to "+newControlSystem.label);
+			
 			switch(curControlSystem){
 				case controlSystems.cursor:
-					console.log("ending cursor mode...");
 					enableButton.style.visibility = "hidden";
 					controlsDiv.style.visibility = "visible";
+				break;
+				case controlSystems.leapmotion:
+				
 				break;
 			}
 			
 			curControlSystem = newControlSystem;
+			modeDisplayDiv.innerHTML = curControlSystem.label+" mode";
 			
 			switch(curControlSystem){
 				case controlSystems.leapmotion:
-					modeDisplayDiv.innerHTML = "leap motion mode";
-					
 					editModeOptionInfo.myOptions[1].style.display = "none";
 					if (editModeOptionInfo.getCurVal() == 1) editModeOptionInfo.optionNumClick(0);//switch from "prim" to "draw+prim"
-					
+				break;
+				case controlSystems.tracked:
+					editModeOptionInfo.myOptions[1].style.display = "block";
+					myExpectTrackedServer.set(true);
 				break;
 				
 			}
 			
 		}
 		
-		function detectControlSystemMode(){
-			
-			if (curControlSystem != controlSystems.leapmotion){//always leapmotion if possible, so, no reason to keep searching then
-				
-				if (controlSystems.leapmotion.isAvailable()) {
-					changeControlSystem(controlSystems.leapmotion);
-				}
-				
-			}
-			
-			
-		}
+		
 		
 		
 		
@@ -375,7 +376,8 @@
 			
 			var artServer = syncInstance.child('art');
 			var allUsersServer = artServer.child('users');
-			var myUserServer = allUsersServer.child(userInfo.userId);
+			myUserPrefsServer = allUsersServer.child(userInfo.userId).child('prefs');
+			myUserPrefsServer.onDisconnect().set({});
 			
 			
 			var isPopup = true;//this is a bit of a silly way to reuse this code, but I'll go with it for now...
@@ -445,7 +447,7 @@
 			
 			// on load, painting mode will ALWAYS be 'cursor' until established otherwise
 			
-			var myEnableServer = myUserServer.child('enable');
+			var myEnableServer = myUserPrefsServer.child('enable');
 			
 			var enabled = false;
 			controlsDiv.style.visibility = "hidden";
@@ -459,8 +461,12 @@
 			
 			
 			
+			myExpectTrackedServer = myUserPrefsServer.child('expectTracked');
 			
-			var myNextColServer = myUserServer.child('nextCol');
+			
+			
+			
+			var myNextColServer = myUserPrefsServer.child('nextCol');
 			
 			function setUpSlider(id,defaultVal){
 				
@@ -539,7 +545,7 @@
 			
 			
 			
-			var strokeThicknessFracServer = myUserServer.child('strokeThicknessFrac');
+			var strokeThicknessFracServer = myUserPrefsServer.child('strokeThicknessFrac');
 			var thicknessControl = document.getElementById('thicknessSlider');
 			function submitThickness(){
 				strokeThicknessFracServer.set(thicknessControl.value);
@@ -553,7 +559,7 @@
 			
 			function makeRadioSet(serverId,divId,labelsList){
 				
-				var myOptionServer = myUserServer.child(serverId);
+				var myOptionServer = myUserPrefsServer.child(serverId);
 				
 				var myOptionsHolderDiv = document.getElementById(divId);
 				var myOptions = [];
