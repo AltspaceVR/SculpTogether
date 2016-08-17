@@ -300,7 +300,8 @@ function SETUP_leapmotion(){
 				rightPinch:rightPinch,
 				leftPinch:leftPinch,
 				rightQuat:rightQuat,
-				leftQuat:leftQuat
+				leftQuat:leftQuat,
+				spawnMargin:1
 			};
 			
 		},

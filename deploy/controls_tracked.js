@@ -117,66 +117,43 @@ function SETUP_tracked(){
 		
 		getBothPinching:function(){
 			
-			return false;
+			if (curMode != 1) return false;
 			
-			/*
-			var pinchThreshhold = 1;
+			if (!pads['Right'].buttons[GRIPINDEX].pressed) return false;
+			if (!pads['Left'].buttons[GRIPINDEX].pressed) return false;
 			
-			if (!isHandActive('Right')) return false;
-			if (!isHandActive('Left')) return false;
+			var rightQuat = new THREE.Quaternion().copy(pads['Right'].rotation);
+			var leftQuat = new THREE.Quaternion().copy(pads['Left'].rotation);
 			
-			var rightPinch = getHandPinch('Right',pinchThreshhold);
-			if (!rightPinch) return false;
+			var rightPinch = new THREE.Vector3().copy(pads['Right'].position);
+			var leftPinch = new THREE.Vector3().copy(pads['Left'].position);
 			
-			var leftPinch = getHandPinch('Left',pinchThreshhold);
-			if (!leftPinch) return false;
+			var offDist = toWorldUnits(1);
 			
-			var rightQuat = skeletonInfo.getJoint('Hand','Right').quaternion;
-			var leftQuat = skeletonInfo.getJoint('Hand','Left').quaternion;
+			var rightOff = new THREE.Vector3(offDist,0,0);
+			rightOff.applyQuaternion(rightQuat);
+			rightPinch.add(rightOff);
+			
+			var leftOff = new THREE.Vector3(-offDist,0,0);
+			leftOff.applyQuaternion(leftQuat);
+			leftPinch.add(leftOff);
 			
 			return {
 				rightPinch:rightPinch,
 				leftPinch:leftPinch,
 				rightQuat:rightQuat,
-				leftQuat:leftQuat
+				leftQuat:leftQuat,
+				spawnMargin:2
 			};
-			*/
 			
 		},
 		
 		
 		getDetonatorPressed:function(){
 			
-			return false;
+			if (curMode != 2) return false;//though I don't think this'll even be polled unless it's the right mode already...
 			
-			/*
-			if (isHandActive(otherHand)) {
-				
-				var detonatorHandInfo = skeletonInfo.getJoint('Hand',otherHand);
-				
-				//this is NOT strictly necessary since position is how it's being hidden right now anyway,
-				//but for the sake of supporting changes to the show/hide system, let's put it in
-				objShow(detonatorHolder);
-				
-				detonatorHolder.position.copy(detonatorHandInfo.position);
-				detonatorHolder.quaternion.copy(detonatorHandInfo.quaternion);
-				
-				detonatorBase.rotation.y = (otherHand == 'Left') ? 0 : Math.PI ;
-				
-				detonatorIsPressed = !isThumbUp(otherHand);
-				detonatorButtonUp.visible = !detonatorIsPressed;
-				detonatorButtonDown.visible = detonatorIsPressed;
-				
-				oldDetonatorPressed = detonatorIsPressed;
-				
-			} else {
-				
-				objHide(detonatorHolder);
-				
-			}
-			
-			return oldDetonatorPressed;
-			*/
+			return pads[dominantHand].buttons[GRIPINDEX].pressed;
 			
 		}
 		

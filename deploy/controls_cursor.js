@@ -238,7 +238,8 @@ function SETUP_cursor(){
 				rightPinch:rightPt,
 				leftPinch:leftPt,
 				rightQuat:rightQuat,
-				leftQuat:leftQuat
+				leftQuat:leftQuat,
+				spawnMargin:1
 			};
 			
 			

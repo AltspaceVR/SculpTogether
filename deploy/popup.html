@@ -26,29 +26,77 @@
 		}
 		
 		
-		#enable{
-			background-color: #F8F;
-			display: inline-block;
+		.clearBoth{
+			clear: both;
+			height: 0px;
+			overflow: hidden;
 		}
 		
 		
-		#title{
+		#initialSection{
+			background-color: #DFF;
+			height: 100%;
+		}
+		#initialSection .initialSectionText{
+			font-size: 60px;
+			margin: 110px;
 			text-align: center;
-			font-size: 48px;
-			background-color: #888;
+		}
+		
+		
+		
+		#controlsSection{
+			display: none;
+		}
+		
+		#modeDisplayHolder{
+			font-size: 24px;
+			margin: 8px;
+		}
+		
+		#controls{
+			display: none;
+		}
+		
+		
+		
+		#controlsTopBar{
+			background-color: #AAA;
+		}
+		
+		#enable{
+			background-color: #F8F;
+			display: inline-block;
+			float: right;
+			font-size: 20px;
+			font-weight: bold;
+			padding: 10px;
+			border-radius: 5px;
+			border: solid 3px #D6D;
+		}
+		
+		
+		
+		.column{
+			display: inline-block;
+			vertical-align: top;
+			margin: 4px;
+			padding: 4px;
+			background-color: #555;
 		}
 		
 		.sectionHeader{
 			text-align: center;
-			background-color:#666;
-			padding:10px 0;
-			margin:4px 0;
+			background-color:#888;
+			font-size: 20px;
+			font-weight: bold;
+			padding:10px;
 		}
 		
 		
 		.colSlider{
 			width:48px;
-			height:400px;
+			height:320px;
 			display: inline-block;
 			background-color: #000;
 			position: relative;
@@ -108,84 +156,190 @@
 		#colResult{
 			background-color: #F0F;
 			height: 40px;
+			border-radius: 10px;
+			margin: 8px;
+			margin-top: 0px;
+		}
+		
+		#thicknessSlider{
+			width: 100%;
+			margin: 0px;
+		}
+		
+		
+		#editOptionsDescription{
+			position: absolute;
+			background-color: #DDF;
+			margin-top: 6px;
+		}
+		#editOptionsDescription div{
+			display: none;
 		}
 		
 		
 		
+		.columnText{
+			background-color: #BBB;
+			padding: 5px;
+			margin: 5px;
+			font-size: 20px;
+			text-align: center;
+		}
 		
+		#resetTimerHolder{
+			margin: 20px;
+		}
+		#resetTimerDiv{
+			font-size: 24px;
+		}
 		
-		
-		
-		
-		
-		
-		
-		
-		
+		#manualResetButton{
+			font-size:24px;
+			margin: 5px;
+		}
 		
 		
 		
 		.radioOption{
 			text-align: center;
-			padding: 20px 0;
+			padding: 16px 0;
 			margin: 4px 0;
+			font-size: 24px;
 			font-weight: bold;
+			border-radius: 5px;
 		}
 		.roSelected{
-			background-color:#FAC;
+			background-color:#F9B;
 		}
 		.roUnselected{
-			background-color:#AAA;
+			background-color:#BBB;
 		}
 		
 	</style>
 </head>
 <body>
-	<div id="title">SculpTogether Palette</div>
-	<div id="modeDisplay">cursor mode</div>
-	<div id="enable">Enable cursor drawing</div>
-	<table id="controls"><tr>
-		<td>
-			<div class="sectionHeader">Select color:</div>
-			<div id="hueSlider" class="colSlider">
-				<div class="colSliderInnerGrad" id="hueSliderGrad">&nbsp;</div>
-				<div class="colSliderMarker" id="hueMarker"></div>
+	
+	
+	
+	<div id="initialSection">
+		<div class="clearBoth">&nbsp;</div>
+		<div class="initialSectionText">If you have a Leap Motion,<br/>raise your hands now</div>
+		<div class="initialSectionText">If not, please click here</div>
+		<div class="clearBoth">&nbsp;</div>
+	</div>
+	
+	
+	
+	<div id="controlsSection">
+		
+		<div id="controlsTopBar">
+			<div class="clearBoth">&nbsp;</div>
+			<div id="enable">Enable cursor drawing</div>
+			<div id="modeDisplayHolder">Current mode: <span id="modeDisplay">cursor mode</span></div>
+			<div class="clearBoth">&nbsp;</div>
+		</div>
+		
+		<div id="instructions">
+			
+			<div id="cursorInstructions">
+				<div>
+					In cursor mode, drawing will take over all your mouse controls outside of the menu,
+					so if you want to teleport around or interact with other things,
+					you'll need to come back to this screen and turn drawing back off.
+				</div>
+				<div>
+					You can turn drawing on and off by clicking the button in the top right of this popup.
+				</div>
 			</div>
-			<div id="satSlider" class="colSlider">
-				<div class="colSliderInnerGrad" id="satSliderGradBack">&nbsp;</div>
-				<div class="colSliderInnerGrad" id="satSliderGradFront">&nbsp;</div>
-				<div class="colSliderMarker" id="satMarker"></div>
+			
+		</div>
+		
+		<div id="controls">
+			<div class="column">
+				<div class="sectionHeader">Select color:</div>
+				<div id="hueSlider" class="colSlider">
+					<div class="colSliderInnerGrad" id="hueSliderGrad">&nbsp;</div>
+					<div class="colSliderMarker" id="hueMarker"></div>
+				</div>
+				<div id="satSlider" class="colSlider">
+					<div class="colSliderInnerGrad" id="satSliderGradBack">&nbsp;</div>
+					<div class="colSliderInnerGrad" id="satSliderGradFront">&nbsp;</div>
+					<div class="colSliderMarker" id="satMarker"></div>
+				</div>
+				<div id="litSlider" class="colSlider">
+					<div class="colSliderInnerGrad" id="litSliderGradBack">&nbsp;</div>
+					<div class="colSliderInnerGrad" id="litSliderGradFront">&nbsp;</div>
+					<div class="colSliderMarker" id="litMarker"></div>
+				</div>
+				<div id="colResult">&nbsp;</div>
+				<div class="clearBoth">&nbsp;</div>
+				<div>
+					<div class="sectionHeader">Stroke width:</div>
+					<input type="range" id="thicknessSlider" min="0" max="1" step="0.01"/>
+				</div>
 			</div>
-			<div id="litSlider" class="colSlider">
-				<div class="colSliderInnerGrad" id="litSliderGradBack">&nbsp;</div>
-				<div class="colSliderInnerGrad" id="litSliderGradFront">&nbsp;</div>
-				<div class="colSliderMarker" id="litMarker"></div>
+			<div class="column">
+				<div class="sectionHeader">Editing mode:</div>
+				<div id="editOptionsHolder"></div>
+				<div id="editOptionsDescription" class="columnText">
+					
+					<div id="cursor_0">
+						Click + hold while moving the cursor to draw ribbons in the air!
+						<br/><img src="manual/cursor_0.png"/>
+					</div>
+					<div id="cursor_1">
+						Click + hold while moving the cursor to make a shape in the air in front of you!
+						<br/><img src="manual/cursor_1.png"/>
+					</div>
+					<div id="cursor_2">
+						Highlight something you drew by pointing the cursor at it, then click to delete it.
+						<br/><img src="manual/cursor_2.png" height="200"/>
+					</div>
+					
+					<div id="leapmotion_0">
+						Point your index finger (on your dominant hand) to draw ribbons in the air!
+						<br/>
+						Pinch the air with both hands, then bring your pinching hands together and apart again to make a shape in the air!
+					</div>
+					<div id="leapmotion_2">
+						Highlight something you drew by pointing your index finger (on your dominant hand) at it,
+						then press the detonator in your other hand (with your thumb) to delete it.
+					</div>
+					
+					<div id="tracked_0">
+						Hold the 'grip' button while moving the cursor to draw ribbons in the air!
+					</div>
+					<div id="tracked_1">
+						Hold the 'grip' button on both hands, then bring your hands together and apart again to make a shape in the air!
+					</div>
+					<div id="tracked_2">
+						Highlight something you drew by pointing your controller at it, then press the 'grip' button to delete it.
+					</div>
+					
+				</div>
 			</div>
-			<div id="colResult">&nbsp;</div>
-		</td>
-		<td>
-			<div class="sectionHeader">Stroke thickness:</div>
-			<input type="range" id="thicknessSlider" min="0" max="1" step="0.01"/>
-		</td>
-		<td>
-			<div class="sectionHeader">Pinch creates:</div>
-			<div id="shapeOptionsHolder"></div>
-		</td>
-		<td>
-			<div class="sectionHeader">Editing mode:</div>
-			<div id="editOptionsHolder"></div>
-		</td>
-		<td>
-			<div class="sectionHeader">Handedness:</div>
-			<div id="handOptionsHolder"></div>
-		</td>
-		<td>
-			<div class="sectionHeader">Room clear:</div>
-			<button id="manualResetButton">Reset Now</button>
-			<div id="previousResetInfo"></div>
-			<div id="resetTimerDiv">...</div>
-		</td>
-	</tr></table>
+			<div class="column">
+				<div class="sectionHeader">Primitive type:</div>
+				<div id="shapeOptionsHolder"></div>
+			</div>
+			<div class="column">
+				<div class="sectionHeader">Handedness:</div>
+				<div id="handOptionsHolder"></div>
+			</div>
+			<div class="column">
+				<div class="sectionHeader">Room clear:</div>
+				<div class="columnText">
+					<div id="previousResetInfo"></div>
+					<div id="resetTimerHolder">
+						<div id="resetTimerDiv">...</div>
+						<div>until next reset.</div>
+					</div>
+					<button id="manualResetButton">Reset Now</button>
+				</div>
+			</div>
+		</div>
+		
+	</div>
 	
 	<script>
 		
@@ -193,6 +347,24 @@
 		var scene;//LEAVE EMPTY! the control scripts test for it, but it has to be declared
 		
 		initControlSystems();
+		
+		
+		
+		var initialSectionDiv = document.getElementById("initialSection");
+		var controlsSectionDiv = document.getElementById("controlsSection");
+		
+		function hideInitialSection(){
+			initialSectionDiv.style.display = "none";
+			controlsSectionDiv.style.display = "block";
+		}
+		
+		initialSectionDiv.addEventListener('click',hideInitialSection);
+		
+		
+		
+		
+		
+		var instructionsDiv = document.getElementById('instructions');
 		
 		
 		function padTimeVal(num){
@@ -261,7 +433,7 @@
 			switch(curControlSystem){
 				case controlSystems.cursor:
 					enableButton.style.visibility = "hidden";
-					controlsDiv.style.visibility = "visible";
+					refreshEnabledness();
 				break;
 				case controlSystems.leapmotion:
 				
@@ -270,11 +442,13 @@
 			
 			curControlSystem = newControlSystem;
 			modeDisplayDiv.innerHTML = curControlSystem.label+" mode";
+			editModeChangeFunc();
 			
 			switch(curControlSystem){
 				case controlSystems.leapmotion:
 					editModeOptionInfo.myOptions[1].style.display = "none";
 					if (editModeOptionInfo.getCurVal() == 1) editModeOptionInfo.optionNumClick(0);//switch from "prim" to "draw+prim"
+					hideInitialSection();//if a click hasn't already, then move past the "click maybe" screen
 				break;
 				case controlSystems.tracked:
 					editModeOptionInfo.myOptions[1].style.display = "block";
@@ -286,6 +460,20 @@
 		}
 		
 		
+		
+		var lastVisibleInstructionDiv;
+		function editModeChangeFunc(){
+			
+			if (!editModeOptionInfo) return;//sigh
+			
+			if (lastVisibleInstructionDiv) lastVisibleInstructionDiv.style.display = "none";
+			
+			var newVisibleInstructionDiv = document.getElementById(curControlSystem.label + "_" + editModeOptionInfo.getCurVal());
+			newVisibleInstructionDiv.style.display = "block";
+			
+			lastVisibleInstructionDiv = newVisibleInstructionDiv;
+			
+		}
 		
 		
 		
@@ -361,7 +549,7 @@
 					
 					var milisLeft = (maxSessionMilis-milisSinceReset);
 					
-					timerDiv.innerHTML = "Seconds until next reset: "+formatTime(milisLeft);
+					timerDiv.innerHTML = formatTime(milisLeft);
 					
 					if (milisLeft <= 0) resetRoom(false);
 					
@@ -450,14 +638,18 @@
 			var myEnableServer = myUserPrefsServer.child('enable');
 			
 			var enabled = false;
-			controlsDiv.style.visibility = "hidden";
 			
 			enableButton.addEventListener('click',function(){
 				enabled = !enabled;
 				enableButton.innerHTML = (enabled?"dis":"en")+"able cursor drawing";
-				controlsDiv.style.visibility = enabled?"visible":"hidden";
+				refreshEnabledness();
 				myEnableServer.set(enabled);
 			});
+			function refreshEnabledness(){
+				var effectivelyEnabled = (curControlSystem != controlSystems.cursor) || enabled;
+				instructionsDiv.style.display = effectivelyEnabled ? "none" : "block";
+				controlsDiv.style.display = effectivelyEnabled ? "block" : "none";
+			}
 			
 			
 			
@@ -473,14 +665,13 @@
 				var sliderDiv = document.getElementById(id+"Slider");
 				var sliderDisp = document.getElementById(id+"Marker");
 				
-				var sliderMax = sliderDiv.clientHeight;
 				
-				var fracVal;
-				function newFracVal(newY){
-					fracVal = newY/sliderMax;
-					sliderDisp.style.top = newY-1;
+				
+				var fracVal = defaultVal;
+				function newFracVal(){
+					sliderDisp.style.top = (fracVal*100)+"%";
 				}
-				newFracVal(defaultVal*sliderMax);
+				newFracVal();
 				
 				sliderDiv.addEventListener('mousedown',function(e){
 					
@@ -488,11 +679,12 @@
 					
 					function moveFunc(e){
 						var newY = e.pageY-sliderDiv.offsetTop;
+						var sliderMax = sliderDiv.clientHeight;
 						newY = Math.max(0,newY);
 						newY = Math.min(newY,sliderMax);
 						if (newY == oldY) return;
-						
-						newFracVal(newY);
+						fracVal = newY/sliderMax;
+						newFracVal();
 						refreshColDisplay(false);
 						
 						oldY = newY;
@@ -557,7 +749,7 @@
 			
 			
 			
-			function makeRadioSet(serverId,divId,labelsList){
+			function makeRadioSet(serverId,divId,labelsList,changeCallback){
 				
 				var myOptionServer = myUserPrefsServer.child(serverId);
 				
@@ -587,6 +779,7 @@
 					}
 					curOptionChoice = clickedIndex;
 					myOptionServer.set(clickedIndex);
+					if (changeCallback) changeCallback();
 				}
 				optionNumClick(0);
 				
@@ -598,11 +791,15 @@
 				
 			}
 			
-			makeRadioSet('nextShape','shapeOptionsHolder',['ball','cube']);
-			editModeOptionInfo = makeRadioSet('editMode','editOptionsHolder',['draw','prim','erase']);
-			makeRadioSet('handChoice','handOptionsHolder',['right','left']);
 			
 			
+			
+			
+			makeRadioSet('nextShape','shapeOptionsHolder',['Ball','Cube']);
+			editModeOptionInfo = makeRadioSet('editMode','editOptionsHolder',['Draw','Shape','Erase'],editModeChangeFunc);
+			makeRadioSet('handChoice','handOptionsHolder',['Right','Left']);
+			
+			editModeChangeFunc();
 			
 			
 			function frameFunc(){

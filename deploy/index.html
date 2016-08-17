@@ -518,7 +518,16 @@
 			
 			
 			
-			
+			var clickMe = new THREE.Mesh(
+				new THREE.PlaneGeometry(toWorldUnits(10),toWorldUnits(5)),
+				new THREE.MeshBasicMaterial({map:THREE.ImageUtils.loadTexture("clickme.png")})
+			);
+			clickMe.visible = false;
+			clickMe.position.z = toWorldUnits(30);
+			clickMe.rotation.y = Math.PI;
+			var headJoint = skeletonInfo.getJoint('Head');
+			headJoint.add(clickMe);
+			scene.add(headJoint);
 			
 			
 			
@@ -604,6 +613,9 @@
 				} else {
 					expectTracked = snapshot.val();
 					console.log("new expectTracked:",expectTracked);
+					//
+					clickMe.visible = expectTracked;
+					//
 				}
 			});
 			
@@ -616,16 +628,7 @@
 			
 			
 			
-			var clickMe = new THREE.Mesh(
-				new THREE.PlaneGeometry(toWorldUnits(10),toWorldUnits(5)),
-				new THREE.MeshBasicMaterial({map:THREE.ImageUtils.loadTexture("clickme.png")})
-			);
-			clickMe.visible = false;
-			clickMe.position.z = toWorldUnits(30);
-			clickMe.rotation.y = Math.PI;
-			var headJoint = skeletonInfo.getJoint('Head');
-			headJoint.add(clickMe);
-			scene.add(headJoint);
+			
 			
 			
 			
@@ -658,8 +661,10 @@
 				detectControlSystemMode();
 				
 				
-				clickMe.visible = (expectTracked && (curControlSystem != controlSystems.tracked) );
-				if (clickMe.visible) console.log("click me!!!!!");
+				
+				
+				//clickMe.visible = (expectTracked && (curControlSystem != controlSystems.tracked) );
+				
 				
 				
 				curControlSystem.frameFunc();
@@ -716,7 +721,7 @@
 						
 						var dataToUpdate = {};
 						
-						if (!cubeInProgress && (pinchSpace < toWorldUnits(1))) {
+						if (!cubeInProgress && (pinchSpace < toWorldUnits(curPinchSpreadInfo.spawnMargin))) {
 							
 							cubeInProgress = myPrimsServer.push();
 							dataToUpdate.typeIndex = nextShapeVal;
