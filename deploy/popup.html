@@ -45,6 +45,17 @@
 		
 		
 		
+		#cursorInstructions{
+			font-size: 28px;
+			text-align: center;
+			background-color: #888;
+			margin: 50px 100px;
+		}
+		#cursorInstructions .cursorInstructionsParagraph {
+			margin: 50px;
+		}
+		
+		
 		#controlsSection{
 			display: none;
 		}
@@ -164,28 +175,83 @@
 		#thicknessSlider{
 			width: 100%;
 			margin: 0px;
+			margin-top: 10px;
+		}
+		
+		
+		
+		
+		/* http://brennaobrien.com/blog/2014/05/style-input-type-range-in-every-browser.html */
+		input[type=range]{
+			-webkit-appearance: none;
+		}
+
+		input[type=range]::-webkit-slider-runnable-track {
+			width: 300px;
+			height: 5px;
+			background: #ddd;
+			border: none;
+			border-radius: 3px;
+		}
+
+		input[type=range]::-webkit-slider-thumb {
+			-webkit-appearance: none;
+			border: none;
+			height: 16px;
+			width: 16px;
+			border-radius: 50%;
+			background: #F9B;
+			margin-top: -4px;
+		}
+
+		input[type=range]:focus {
+			outline: none;
+		}
+
+		input[type=range]:focus::-webkit-slider-runnable-track {
+			background: #ccc;
+		}
+		
+		
+		
+		
+		
+		
+		
+		#nonColorSection{
+			display: inline-block;
 		}
 		
 		
 		#editOptionsDescription{
 			position: absolute;
 			background-color: #DDF;
+			
+			padding: 5px;
+			margin: 5px;
 			margin-top: 6px;
+			font-size: 20px;
+			text-align: center;
 		}
-		#editOptionsDescription div{
+		#editOptionsDescription > div{
 			display: none;
 		}
 		
+		.instructionHalf{
+			display: inline-block;
+			vertical-align: top;
+			width: 48%;
+		}
 		
 		
-		.columnText{
-			background-color: #BBB;
+		
+		.resetText{
 			padding: 5px;
 			margin: 5px;
 			font-size: 20px;
 			text-align: center;
+			width: 240px;
 		}
-		
 		#resetTimerHolder{
 			margin: 20px;
 		}
@@ -242,19 +308,22 @@
 		<div id="instructions">
 			
 			<div id="cursorInstructions">
-				<div>
+				<div class="clearBoth">&nbsp;</div>
+				<div class="cursorInstructionsParagraph">
 					In cursor mode, drawing will take over all your mouse controls outside of the menu,
 					so if you want to teleport around or interact with other things,
 					you'll need to come back to this screen and turn drawing back off.
 				</div>
-				<div>
+				<div class="cursorInstructionsParagraph">
 					You can turn drawing on and off by clicking the button in the top right of this popup.
 				</div>
+				<div class="clearBoth">&nbsp;</div>
 			</div>
 			
 		</div>
 		
 		<div id="controls">
+			
 			<div class="column">
 				<div class="sectionHeader">Select color:</div>
 				<div id="hueSlider" class="colSlider">
@@ -278,9 +347,35 @@
 					<input type="range" id="thicknessSlider" min="0" max="1" step="0.01"/>
 				</div>
 			</div>
-			<div class="column">
-				<div class="sectionHeader">Editing mode:</div>
-				<div id="editOptionsHolder"></div>
+			
+			<div id="nonColorSection">
+				
+				<div>
+					<div class="column">
+						<div class="sectionHeader">Editing mode:</div>
+						<div id="editOptionsHolder"></div>
+					</div>
+					<div class="column">
+						<div class="sectionHeader">Primitive type:</div>
+						<div id="shapeOptionsHolder"></div>
+					</div>
+					<div class="column">
+						<div class="sectionHeader">Handedness:</div>
+						<div id="handOptionsHolder"></div>
+					</div>
+					<div class="column">
+						<div class="sectionHeader">Room clear:</div>
+						<div class="resetText">
+							<div id="previousResetInfo"></div>
+							<div id="resetTimerHolder">
+								<div id="resetTimerDiv">...</div>
+								<div>until next reset.</div>
+							</div>
+							<button id="manualResetButton">Reset Now</button>
+						</div>
+					</div>
+				</div>
+				
 				<div id="editOptionsDescription" class="columnText">
 					
 					<div id="cursor_0">
@@ -297,46 +392,38 @@
 					</div>
 					
 					<div id="leapmotion_0">
-						Point your index finger (on your dominant hand) to draw ribbons in the air!
-						<br/>
-						Pinch the air with both hands, then bring your pinching hands together and apart again to make a shape in the air!
+						<div class="instructionHalf">
+							Point your index finger (on your dominant hand) to draw ribbons in the air!
+							<br/><img src="manual/leapmotion_0.png"/>
+						</div>
+						<div class="instructionHalf">
+							Pinch the air with both hands, then bring your pinching hands together and apart again to make a shape in the air!
+							<br/><img src="manual/leapmotion_1.png"/>
+						</div>
 					</div>
 					<div id="leapmotion_2">
 						Highlight something you drew by pointing your index finger (on your dominant hand) at it,
 						then press the detonator in your other hand (with your thumb) to delete it.
+						<br/><img src="manual/leapmotion_2.png"/>
 					</div>
 					
 					<div id="tracked_0">
 						Hold the 'grip' button while moving the cursor to draw ribbons in the air!
+						<br/><img src="manual/tracked_0.png"/>
 					</div>
 					<div id="tracked_1">
 						Hold the 'grip' button on both hands, then bring your hands together and apart again to make a shape in the air!
+						<br/><img src="manual/tracked_1.png"/>
 					</div>
 					<div id="tracked_2">
 						Highlight something you drew by pointing your controller at it, then press the 'grip' button to delete it.
+						<br/><img src="manual/tracked_2.png"/>
 					</div>
 					
 				</div>
+				
 			</div>
-			<div class="column">
-				<div class="sectionHeader">Primitive type:</div>
-				<div id="shapeOptionsHolder"></div>
-			</div>
-			<div class="column">
-				<div class="sectionHeader">Handedness:</div>
-				<div id="handOptionsHolder"></div>
-			</div>
-			<div class="column">
-				<div class="sectionHeader">Room clear:</div>
-				<div class="columnText">
-					<div id="previousResetInfo"></div>
-					<div id="resetTimerHolder">
-						<div id="resetTimerDiv">...</div>
-						<div>until next reset.</div>
-					</div>
-					<button id="manualResetButton">Reset Now</button>
-				</div>
-			</div>
+			
 		</div>
 		
 	</div>
@@ -423,6 +510,16 @@
 		var myExpectTrackedServer;
 		
 		
+		var enabled = false;
+		
+		function refreshEnabledness(){
+			var effectivelyEnabled = (curControlSystem != controlSystems.cursor) || enabled;
+			instructionsDiv.style.display = effectivelyEnabled ? "none" : "block";
+			controlsDiv.style.display = effectivelyEnabled ? "block" : "none";
+		}
+		
+		
+		
 		
 		var curControlSystem = controlSystems.cursor;//only safe assumption
 		
@@ -433,7 +530,6 @@
 			switch(curControlSystem){
 				case controlSystems.cursor:
 					enableButton.style.visibility = "hidden";
-					refreshEnabledness();
 				break;
 				case controlSystems.leapmotion:
 				
@@ -441,7 +537,7 @@
 			}
 			
 			curControlSystem = newControlSystem;
-			modeDisplayDiv.innerHTML = curControlSystem.label+" mode";
+			modeDisplayDiv.innerHTML = curControlSystem.label;
 			editModeChangeFunc();
 			
 			switch(curControlSystem){
@@ -456,6 +552,8 @@
 				break;
 				
 			}
+			
+			refreshEnabledness();
 			
 		}
 		
@@ -601,7 +699,7 @@
 					previousWipeNum = newWipeNum;
 					
 					if (isPopup){
-						var resetMsg = "Last reset was "+(newWipeInfo.wasManual?("manually by "+newWipeInfo.user):"by timer.");
+						var resetMsg = "Last reset was "+(newWipeInfo.wasManual?("manually, by "+newWipeInfo.user):"by the timer.");
 						document.getElementById('previousResetInfo').innerHTML = resetMsg;
 						lastWipeTime = newWipeInfo.time;
 					}
@@ -637,19 +735,13 @@
 			
 			var myEnableServer = myUserPrefsServer.child('enable');
 			
-			var enabled = false;
-			
 			enableButton.addEventListener('click',function(){
 				enabled = !enabled;
 				enableButton.innerHTML = (enabled?"dis":"en")+"able cursor drawing";
 				refreshEnabledness();
 				myEnableServer.set(enabled);
 			});
-			function refreshEnabledness(){
-				var effectivelyEnabled = (curControlSystem != controlSystems.cursor) || enabled;
-				instructionsDiv.style.display = effectivelyEnabled ? "none" : "block";
-				controlsDiv.style.display = effectivelyEnabled ? "block" : "none";
-			}
+			
 			
 			
 			
