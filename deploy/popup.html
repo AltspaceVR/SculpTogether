@@ -21,7 +21,7 @@
 	
 	<style>
 		body{
-			background-color: #444;
+			background-color: #CEF;
 			font-family: sans-serif;
 		}
 		
@@ -47,7 +47,7 @@
 		#cursorInstructions {
 			font-size: 28px;
 			text-align: center;
-			background-color: #888;
+			background-color: #FFE;
 			margin: 50px 100px;
 		}
 		
@@ -60,7 +60,7 @@
 			display: none;
 			font-size: 28px;
 			text-align: center;
-			background-color: #888;
+			background-color: #FFE;
 			margin: 0 100px;
 			margin-top: 200px;
 		}
@@ -87,7 +87,7 @@
 		
 		
 		#controlsTopBar{
-			background-color: #AAA;
+			background-color: #AAF;
 		}
 		
 		#enable{
@@ -96,7 +96,7 @@
 			float: right;
 			font-size: 20px;
 			font-weight: bold;
-			padding: 10px;
+			padding: 10px 25px;
 			border-radius: 5px;
 			border: solid 3px #D6D;
 		}
@@ -107,13 +107,13 @@
 			display: inline-block;
 			vertical-align: top;
 			margin: 4px;
-			padding: 4px;
-			background-color: #555;
+			padding: 3px;
+			background-color: #779;
 		}
 		
 		.sectionHeader{
 			text-align: center;
-			background-color:#888;
+			background-color:#FFD;
 			font-size: 20px;
 			font-weight: bold;
 			padding:10px;
@@ -127,6 +127,7 @@
 			background-color: #000;
 			position: relative;
 			margin: 4px;
+			border: 2px solid rgba(0,0,0,0.25);
 		}
 		.colSliderInnerGrad{
 			width: 100%;
@@ -185,12 +186,13 @@
 			border-radius: 10px;
 			margin: 8px;
 			margin-top: 0px;
+			border: 2px solid #000;
 		}
 		
 		#thicknessSlider{
 			width: 100%;
-			margin: 0px;
-			margin-top: 10px;
+			margin: 10px 0px;
+			margin-bottom: 5px;
 		}
 		
 		
@@ -211,7 +213,7 @@
 
 		input[type=range]::-webkit-slider-thumb {
 			-webkit-appearance: none;
-			border: none;
+			border: 2px solid rgba(0,0,0,0.5);
 			height: 16px;
 			width: 16px;
 			border-radius: 50%;
@@ -240,13 +242,14 @@
 		
 		#editOptionsDescription{
 			position: absolute;
-			background-color: #DDF;
+			background-color: #AFB;
 			
 			padding: 5px;
 			margin: 5px;
 			margin-top: 6px;
 			font-size: 20px;
 			text-align: center;
+			border: 2px solid rgba(0,0,0,0.25);
 		}
 		#editOptionsDescription > div{
 			display: none;
