@@ -700,7 +700,7 @@
 						
 						
 						
-						if ( !lastPos || (curPointingInfo.fingerPos.distanceTo(lastPos) > toWorldUnits(0.1)) ) {
+						if ( !lastPos || (curPointingInfo.fingerPos.distanceTo(lastPos) > toWorldUnits(0.5)) ) {
 							
 							var strokeThickness = 0.2 + strokeWidthFrac*1.6;
 							var otherPos = offPtInDir(curPointingInfo.fingerPos,curPointingInfo.fingerQuat,toWorldUnits(strokeThickness));
@@ -708,9 +708,11 @@
 							var newPoint = curPointsServer.push();
 							newPoint.set({vertices:[curPointingInfo.fingerPos,otherPos]});
 							
+							lastPos = curPointingInfo.fingerPos;
+							
 						}
 						
-						lastPos = curPointingInfo.fingerPos;
+						
 						
 					} else {
 						
