@@ -44,16 +44,31 @@
 		}
 		
 		
-		
-		#cursorInstructions{
+		#cursorInstructions {
 			font-size: 28px;
 			text-align: center;
 			background-color: #888;
 			margin: 50px 100px;
 		}
-		#cursorInstructions .cursorInstructionsParagraph {
+		
+		.cursorInstructionsParagraph {
 			margin: 50px;
 		}
+		
+		
+		#trackedInstructions{
+			display: none;
+			font-size: 28px;
+			text-align: center;
+			background-color: #888;
+			margin: 0 100px;
+			margin-top: 200px;
+		}
+		
+		.trackedInstructionsParagraph{
+			margin: 50px;
+		}
+		
 		
 		
 		#controlsSection{
@@ -245,6 +260,7 @@
 		
 		
 		
+		
 		.resetText{
 			padding: 5px;
 			margin: 5px;
@@ -316,6 +332,14 @@
 				</div>
 				<div class="cursorInstructionsParagraph">
 					You can turn drawing on and off by clicking the button in the top right of this popup.
+				</div>
+				<div class="clearBoth">&nbsp;</div>
+			</div>
+			
+			<div id="trackedInstructions">
+				<div class="clearBoth">&nbsp;</div>
+				<div class="trackedInstructionsParagraph">
+					To continue, please click on the box that should now be following your gaze.
 				</div>
 				<div class="clearBoth">&nbsp;</div>
 			</div>
@@ -431,6 +455,12 @@
 	<script>
 		
 		
+		console.log("========================================================");
+		console.log("I am POPUP!");
+		console.log("========================================================");
+		
+		
+		
 		var scene;//LEAVE EMPTY! the control scripts test for it, but it has to be declared
 		
 		initControlSystems();
@@ -445,7 +475,7 @@
 			controlsSectionDiv.style.display = "block";
 		}
 		
-		initialSectionDiv.addEventListener('click',hideInitialSection);
+		initialSectionDiv.addEventListener('mousedown',hideInitialSection);//NOT a click, because the next step can interrupt the mouseup!
 		
 		
 		
@@ -500,6 +530,11 @@
 		
 		
 		
+		var cursorInstructionsDiv = document.getElementById('cursorInstructions');
+		var trackedInstructionsDiv = document.getElementById('trackedInstructions');
+		
+		
+		
 		var modeDisplayDiv = document.getElementById('modeDisplay');
 		var enableButton = document.getElementById('enable');
 		var controlsDiv = document.getElementById('controls');
@@ -511,9 +546,21 @@
 		
 		
 		var enabled = false;
+		var enclosureSeesGamepad = false;
 		
 		function refreshEnabledness(){
-			var effectivelyEnabled = (curControlSystem != controlSystems.cursor) || enabled;
+			var effectivelyEnabled;
+			switch(curControlSystem){
+				case controlSystems.cursor:
+					effectivelyEnabled = enabled;
+				break;
+				case controlSystems.leapmotion:
+					effectivelyEnabled = true;
+				break;
+				case controlSystems.tracked:
+					effectivelyEnabled = enclosureSeesGamepad;
+				break;
+			}
 			instructionsDiv.style.display = effectivelyEnabled ? "none" : "block";
 			controlsDiv.style.display = effectivelyEnabled ? "block" : "none";
 		}
@@ -530,6 +577,7 @@
 			switch(curControlSystem){
 				case controlSystems.cursor:
 					enableButton.style.visibility = "hidden";
+					cursorInstructionsDiv.style.display = "none";
 				break;
 				case controlSystems.leapmotion:
 				
@@ -548,6 +596,7 @@
 				break;
 				case controlSystems.tracked:
 					editModeOptionInfo.myOptions[1].style.display = "block";
+					trackedInstructionsDiv.style.display = "block";
 					myExpectTrackedServer.set(true);
 				break;
 				
@@ -664,6 +713,15 @@
 			var allUsersServer = artServer.child('users');
 			myUserPrefsServer = allUsersServer.child(userInfo.userId).child('prefs');
 			myUserPrefsServer.onDisconnect().set({});
+			
+			
+			var enclosureSeesGamepadServer = myUserPrefsServer.child('enclosureSeesGamepad')
+			enclosureSeesGamepadServer.on('value',function(snapshot){
+				enclosureSeesGamepad = snapshot.val();
+				console.log("new enclosureSeesGamepad:",enclosureSeesGamepad);
+				refreshEnabledness();
+			});
+			
 			
 			
 			var isPopup = true;//this is a bit of a silly way to reuse this code, but I'll go with it for now...

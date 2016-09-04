@@ -62,10 +62,14 @@
 		TODO:
 		- more 'wearables' for other leap motion functions?
 		- make leap motion aim also be based around proximity if aim fails?
+		
+		- new theme for popup
 	*/
 	
 	
 	
+	console.log("========================================================");
+	console.log("I am INDEX!");
 	console.log("========================================================");
 	
 	
@@ -81,6 +85,11 @@
 	}
 	
 	
+	
+	
+	function makeIntangible(newMesh){
+		newMesh.userData.altspace = {collider:{enabled:false}};
+	}
 	
 	
 	
@@ -132,7 +141,7 @@
 	
 	
 	
-	
+	var enclosureSeesGamepadServer;
 	
 	var curControlSystem;
 	function changeControlSystem(newControlSystem){
@@ -145,6 +154,11 @@
 		curControlSystem.open();
 		curControlSystem.modeSwitch(editModeVal);
 		curControlSystem.frameFunc();
+		
+		if (curControlSystem == controlSystems.tracked) {
+			console.log("TELLING POPUP WE CAN SEE THE GAMEPAD!");
+			enclosureSeesGamepadServer.set(true);
+		}
 		
 		// oof this is pretty hard-codey right here
 		curPointsServer = null;
@@ -427,6 +441,7 @@
 							
 							var newMesh = new THREE.Mesh( newGeom, ribbonMat );
 							newMesh.name = "SOME MESH";
+							makeIntangible(newMesh);
 							scene.add(newMesh);
 							curStrokeInfo.meshes.push(newMesh);
 							if (isMe) {
@@ -482,6 +497,7 @@
 							color:realColor
 						})
 					);
+					makeIntangible(primMesh);
 					primMesh.material.realColor = realColor;
 					primMesh.boundBox = new THREE.Box3(new THREE.Vector3(0,0,0),new THREE.Vector3(1,1,1));
 					applyTransformFromArray(primMesh,primSource.transform);
@@ -513,13 +529,12 @@
 			
 			
 			
-			
 			var clickMe = new THREE.Mesh(
-				new THREE.PlaneGeometry(toWorldUnits(10),toWorldUnits(5)),
-				new THREE.MeshBasicMaterial({map:THREE.ImageUtils.loadTexture("clickme.png")})
+				new THREE.PlaneGeometry(toWorldUnits(20),toWorldUnits(10)),
+				new THREE.MeshBasicMaterial({map:THREE.ImageUtils.loadTexture("clickMe.png")})
 			);
 			clickMe.visible = false;
-			clickMe.position.z = toWorldUnits(30);
+			clickMe.position.z = toWorldUnits(20);
 			clickMe.rotation.y = Math.PI;
 			var headJoint = skeletonInfo.getJoint('Head');
 			headJoint.add(clickMe);
@@ -618,9 +633,13 @@
 			
 			
 			
+			enclosureSeesGamepadServer = myPrefsServer.child("enclosureSeesGamepad");
+			
+			
+			
+			
 			
 			changeControlSystem(controlSystems.cursor);
-			
 			
 			
 			
@@ -644,8 +663,6 @@
 				
 				
 				
-				
-				
 				requestAnimationFrame(frameFunc);
 				
 				
@@ -659,7 +676,7 @@
 				
 				
 				
-				//clickMe.visible = (expectTracked && (curControlSystem != controlSystems.tracked) );
+				clickMe.visible = (expectTracked && (curControlSystem != controlSystems.tracked) );
 				
 				
 				

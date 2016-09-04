@@ -1,3 +1,14 @@
+var hasBeenFocused;
+
+window.addEventListener('focus',function(){
+	console.log("[FOCUS]");
+	hasBeenFocused = true;
+});
+window.addEventListener('blur',function(){
+	console.log("[BLUR]");
+});
+
+
 var controlSystems;
 
 function initControlSystems(){

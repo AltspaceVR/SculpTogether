@@ -17,11 +17,24 @@ function SETUP_tracked(){
 		
 		isAvailable:function(){
 			
+			
+			var gamepadsList = altspace.getGamepads();//always ask regardless of anything
+			
+			
+			if (!hasBeenFocused) {
+				//console.log("tracked unavailable because HASN'T BEEN FOCUSED");
+				return false;
+			}
+			
+			
 			if (pads) return true;
 			
 			
-			var gamepadsList = altspace.getGamepads();
-			if (gamepadsList.length < 2) return false;
+			
+			if (gamepadsList.length < 2) {
+				//console.log("tracked unavailable because ONLY",gamepadsList.length,"PADS");
+				return false;
+			}
 			
 			
 			var padL, padR;
@@ -45,7 +58,10 @@ function SETUP_tracked(){
 				}
 			}
 			
-			if (!padL || !padR) return false;
+			if (!padL || !padR) {
+				//console.log("tracked unavailable because THERE'S",gamepadsList.length,"PADS, BUT NO HANDEDNESS");
+				return false;
+			}
 			
 			pads = {'Right':padR,'Left':padL};
 			return true;
