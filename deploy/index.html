@@ -135,11 +135,13 @@
 	var dominantHand, otherHand;
 	var editModeVal;
 	
+	var walkingDead;
 	
 	
 	
 	
 	var enclosureSeesGamepadServer;
+	var artServer;
 	
 	var curControlSystem;
 	function changeControlSystem(newControlSystem){
@@ -317,7 +319,7 @@
 			
 			var personalPrimsList, personalStrokesList;
 			
-			var artServer = syncInstance.child('art');
+			artServer = syncInstance.child('art');
 			
 			
 			
@@ -325,71 +327,7 @@
 			
 			
 			
-			
-			// THIS NEXT CHUNK OF CODE IS IN BOTH POPUP.HTML AND INDEX.HTML,
-			// and so should probably be migrated to shared.js,
-			// but I wound up finishing up version 1 without getting around to it!
-			
-			var isPopup = false;//this is a bit of a silly way to reuse this code, but I'll go with it for now...
-			var previousWipeNum;
-			var lastWipeTime;
-			var wipeInfoServer = artServer.child('wipeInfo');
-			wipeInfoServer.on('value',function(snapshot){
-				
-				var newWipeInfo = snapshot.val();
-				if (!newWipeInfo) {
-					console.log("no existing wipe info, this seems to be a new room! Resetting it now, to generate a lastWipeTime...");
-					previousWipeNum = 1;
-					resetRoom(false);//there might be a few people who all reset around the same time, but it shouldn't matter
-					return;
-				}
-				var newWipeNum = newWipeInfo.num;
-				console.log("current wipenum val:",newWipeNum);
-				
-				if (previousWipeNum) {
-					console.log("previous wipenum val:",previousWipeNum);
-					if (newWipeNum != previousWipeNum) {
-						console.log("so, time to reload. (You probably can't see this log.)");
-						if (walkingDead) {
-							console.log("EXCEPT, I'm the one who sent the message, so I'm not going to until I hear back from the server!!");
-						} else {
-							location.reload();
-						}
-					} else {
-						console.log("so, no reloading just yet.");
-					}
-				} else {
-					console.log("this is the first wipenum I've seen, so I'll remember it.");
-					previousWipeNum = newWipeNum;
-					
-					if (isPopup){
-						var resetMsg = "Last reset was "+(newWipeInfo.wasManual?("manually by "+newWipeInfo.user):"by timer.");
-						document.getElementById('previousResetInfo').innerHTML = resetMsg;
-						lastWipeTime = newWipeInfo.time;
-					}
-				}
-				
-			});
-			
-			var walkingDead = false;
-			
-			function resetRoom(manual){
-				
-				walkingDead = true;
-				
-				artServer.set({wipeInfo:{
-					num:(previousWipeNum+1),
-					time:Firebase.ServerValue.TIMESTAMP,
-					user:userInfo.displayName,
-					wasManual:manual
-				}},function(error){
-					//news of reset has reached server, so:
-					location.reload();
-				});
-				
-			}
-			// resetRoom is only used in popup, but let's have it here too for reference
-			
+			setupResetSystem(false);
 			
 			
 			

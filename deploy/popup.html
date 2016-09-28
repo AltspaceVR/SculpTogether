@@ -394,11 +394,7 @@
 						<div class="sectionHeader">Room clear:</div>
 						<div class="resetText">
 							<div id="previousResetInfo"></div>
-							<div id="resetTimerHolder">
-								<div id="resetTimerDiv">...</div>
-								<div>until next reset.</div>
-							</div>
-							<button id="manualResetButton">Reset Now</button>
+							<button id="manualResetButton">Reset room</button>
 						</div>
 					</div>
 				</div>
@@ -465,6 +461,7 @@
 		
 		
 		var scene;//LEAVE EMPTY! the control scripts test for it, but it has to be declared
+		var walkingDead;
 		
 		initControlSystems();
 		
@@ -486,19 +483,6 @@
 		
 		var instructionsDiv = document.getElementById('instructions');
 		
-		
-		function padTimeVal(num){
-			var floorNum = Math.floor(num);
-			return (floorNum<10 ? "0" : "") + floorNum;
-		}
-		function formatTime(milis){
-			if (milis < 0) milis = 0;//at least in this situation?
-			var secs = milis/1000;
-			var secsStr = padTimeVal(secs%60);
-			var mins = secs/60;
-			var minsStr = padTimeVal(mins);
-			return minsStr+":"+secsStr;
-		}
 		
 		
 		
@@ -547,6 +531,7 @@
 		var editModeOptionInfo;
 		
 		var myUserPrefsServer;
+		var artServer;
 		var myExpectTrackedServer;
 		
 		
@@ -639,82 +624,12 @@
 			
 			
 			
-			function getAvg(test,then){
-				
-				var vals = [];
-				
-				function testPass(){
-					test(testOver);
-				}
-				function testOver(newVal){
-					vals.push(newVal);
-					console.log(newVal);
-					if (vals.length < 10) {
-						testPass();
-					} else {
-						// discard outliers, maybe? although this is already so approximated it's probably not worth it
-						var sum = 0;
-						for(var i=0; i<vals.length; i++) sum += vals[i];
-						var avg = sum/vals.length;
-						console.log("avg:",avg);
-						then(avg);
-					}
-				}
-				
-				testPass();
-				
-			}
-			
-			var myTimestampScratchpad = syncInstance.child("timestampScratchpad/"+Math.floor(Math.random()*1000000));
-			function testClockSkew(returnTo){
-				
-				myTimestampScratchpad.set( Firebase.ServerValue.TIMESTAMP, function(e){
-					myTimestampScratchpad.once('value',function(snapshot){
-						
-						var response = snapshot.val();
-						var curClockSkew = performance.now()-response;//does NOT account for ping, but for these purposes, whatever
-						
-						returnTo(curClockSkew);
-						
-					});
-				});
-				
-			}
-			console.log("FIREBASE CLOCK SKEW:");
-			getAvg(testClockSkew,clockSkewComplete);
-			
-			
-			
-			function clockSkewComplete(clockSkewResult){
-				
-				var timerDiv = document.getElementById("resetTimerDiv");
-				
-				var maxSessionMins = 30;
-				var maxSessionMilis = maxSessionMins*60*1000;
-				
-				setInterval(function(){
-					
-					if (walkingDead) return;
-					
-					var milisSinceReset = performance.now()-lastWipeTime;
-					milisSinceReset -= clockSkewResult;
-					
-					var milisLeft = (maxSessionMilis-milisSinceReset);
-					
-					timerDiv.innerHTML = formatTime(milisLeft);
-					
-					if (milisLeft <= 0) resetRoom(false);
-					
-				},1000);
-				
-			}
 			
 			
 			
 			
 			
-			
-			var artServer = syncInstance.child('art');
+			artServer = syncInstance.child('art');
 			var allUsersServer = artServer.child('users');
 			myUserPrefsServer = allUsersServer.child(userInfo.userId).child('prefs');
 			myUserPrefsServer.onDisconnect().set({});
@@ -733,70 +648,7 @@
 			
 			
 			
-			
-			// THIS NEXT CHUNK OF CODE IS IN BOTH POPUP.HTML AND INDEX.HTML,
-			// and so should probably be migrated to shared.js,
-			// but I wound up finishing up version 1 without getting around to it!
-			
-			var isPopup = true;//this is a bit of a silly way to reuse this code, but I'll go with it for now...
-			var previousWipeNum;
-			var lastWipeTime;
-			var wipeInfoServer = artServer.child('wipeInfo');
-			wipeInfoServer.on('value',function(snapshot){
-				
-				var newWipeInfo = snapshot.val();
-				if (!newWipeInfo) {
-					console.log("no existing wipe info, this seems to be a new room! Resetting it now, to generate a lastWipeTime...");
-					previousWipeNum = 1;
-					resetRoom(false);//there might be a few people who all reset around the same time, but it shouldn't matter
-					return;
-				}
-				var newWipeNum = newWipeInfo.num;
-				console.log("current wipenum val:",newWipeNum);
-				
-				if (previousWipeNum) {
-					console.log("previous wipenum val:",previousWipeNum);
-					if (newWipeNum != previousWipeNum) {
-						console.log("so, time to reload. (You probably can't see this log.)");
-						if (walkingDead) {
-							console.log("EXCEPT, I'm the one who sent the message, so I'm not going to until I hear back from the server!!");
-						} else {
-							location.reload();
-						}
-					} else {
-						console.log("so, no reloading just yet.");
-					}
-				} else {
-					console.log("this is the first wipenum I've seen, so I'll remember it.");
-					previousWipeNum = newWipeNum;
-					
-					if (isPopup){
-						var resetMsg = "Last reset was "+(newWipeInfo.wasManual?("manually, by "+newWipeInfo.user):"by the timer.");
-						document.getElementById('previousResetInfo').innerHTML = resetMsg;
-						lastWipeTime = newWipeInfo.time;
-					}
-				}
-				
-			});
-			
-			var walkingDead = false;
-			
-			function resetRoom(manual){
-				
-				walkingDead = true;
-				
-				artServer.set({wipeInfo:{
-					num:(previousWipeNum+1),
-					time:Firebase.ServerValue.TIMESTAMP,
-					user:userInfo.displayName,
-					wasManual:manual
-				}},function(error){
-					//news of reset has reached server, so:
-					location.reload();
-				});
-				
-			}
-			// don't forget this is all in index, too
+			setupResetSystem(true);
 			
 			
 			
@@ -805,9 +657,7 @@
 			
 			
 			
-			
-			
-			document.getElementById('manualResetButton').addEventListener('click',function(){resetRoom(true)});
+			document.getElementById('manualResetButton').addEventListener('click',function(){ resetRoom() });
 			
 			
 			
