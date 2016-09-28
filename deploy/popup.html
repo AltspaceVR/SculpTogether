@@ -523,6 +523,8 @@
 					firebaseInfo = _firebaseInfo;
 					
 					setTimeout(browserSetup,0);
+					//setTimeout so errors aren't captured by the catches in altspace's callbacks!
+					//kludgy but it's used safely here, and it makes debugging so much easier
 					
 				});
 				
@@ -614,7 +616,7 @@
 		var lastVisibleInstructionDiv;
 		function editModeChangeFunc(){
 			
-			if (!editModeOptionInfo) return;//sigh
+			if (!editModeOptionInfo) return;
 			
 			if (lastVisibleInstructionDiv) lastVisibleInstructionDiv.style.display = "none";
 			
@@ -727,6 +729,15 @@
 			
 			
 			
+			
+			
+			
+			
+			
+			// THIS NEXT CHUNK OF CODE IS IN BOTH POPUP.HTML AND INDEX.HTML,
+			// and so should probably be migrated to shared.js,
+			// but I wound up finishing up version 1 without getting around to it!
+			
 			var isPopup = true;//this is a bit of a silly way to reuse this code, but I'll go with it for now...
 			var previousWipeNum;
 			var lastWipeTime;
@@ -786,6 +797,14 @@
 				
 			}
 			// don't forget this is all in index, too
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			document.getElementById('manualResetButton').addEventListener('click',function(){resetRoom(true)});

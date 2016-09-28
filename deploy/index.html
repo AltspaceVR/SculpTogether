@@ -62,8 +62,6 @@
 		TODO:
 		- more 'wearables' for other leap motion functions?
 		- make leap motion aim also be based around proximity if aim fails?
-		
-		- new theme for popup
 	*/
 	
 	
@@ -130,7 +128,7 @@
 	var scene;
 	var ppm;
 	function toWorldUnits(x){
-		return x*ppm /17.873589;//hardcoded divisor; numbers were tuned to that room's ppm
+		return x*ppm /17.873589;//hardcoded divisor; the measurements I settled on were tuned to a specific room's ppm
 	}
 	
 	// leap motion:
@@ -321,6 +319,17 @@
 			
 			var artServer = syncInstance.child('art');
 			
+			
+			
+			
+			
+			
+			
+			
+			// THIS NEXT CHUNK OF CODE IS IN BOTH POPUP.HTML AND INDEX.HTML,
+			// and so should probably be migrated to shared.js,
+			// but I wound up finishing up version 1 without getting around to it!
+			
 			var isPopup = false;//this is a bit of a silly way to reuse this code, but I'll go with it for now...
 			var previousWipeNum;
 			var lastWipeTime;
@@ -380,6 +389,14 @@
 				
 			}
 			// resetRoom is only used in popup, but let's have it here too for reference
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			var usersServer = artServer.child('users');
 			usersServer.on("child_added",function(snapshot,prevChildKey){

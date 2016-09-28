@@ -80,7 +80,7 @@ function SETUP_cursor(){
 		return lastRay.at(toWorldUnits(40));
 	}
 	function lookAtQuat(gap,up){
-		// okay this is HORRIBLY convoluted but it'll do!!
+		// okay this is HORRIBLY messy but it'll do!!
 		var lookMtx = new THREE.Matrix4().lookAt(zeroVec,gap,up);
 		var lookQuat = new THREE.Quaternion().setFromRotationMatrix(lookMtx);
 		return lookQuat;
