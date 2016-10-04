@@ -68,7 +68,7 @@ function setupResetSystem(isPopup){
 		var newWipeInfo = snapshot.val();
 		if (!newWipeInfo) console.log("no existing wipe info, this seems to be a new room!");
 		
-		var newWipeNum = newWipeInfo ? newWipeInfo.num : 1;
+		var newWipeNum = newWipeInfo ? newWipeInfo.num : 1 ;
 		console.log("current wipenum val:",newWipeNum);
 		
 		if (previousWipeNum) {
