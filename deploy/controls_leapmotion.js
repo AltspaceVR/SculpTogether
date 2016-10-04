@@ -1,3 +1,5 @@
+/* exported SETUP_leapmotion */
+/* global THREE, scene, objHide, objShow, skeletonInfo, quatDist, offPtInDir, toWorldUnits, dominantHand, otherHand */
 function SETUP_leapmotion(){
 	
 	function isFingerPointing(fingerName,handName){
@@ -52,9 +54,9 @@ function SETUP_leapmotion(){
 	var pinchDebugGeom = new THREE.SphereGeometry(0.2);
 	var pinchDebugMat = new THREE.MeshBasicMaterial({color:0xFF00FF});
 	var pinchDebugMeshes = {
-		'Left':new THREE.Mesh(pinchDebugGeom,pinchDebugMat),
-		'Right':new THREE.Mesh(pinchDebugGeom,pinchDebugMat)
-	}
+		Left:new THREE.Mesh(pinchDebugGeom,pinchDebugMat),
+		Right:new THREE.Mesh(pinchDebugGeom,pinchDebugMat)
+	};
 	
 	//scene.add(pinchDebugMeshes['Left']);
 	//scene.add(pinchDebugMeshes['Right']);
@@ -228,13 +230,13 @@ function SETUP_leapmotion(){
 			switch(curMode){
 				case 0://draw
 				
-				break;
+					break;
 				case 1://prim only (should be impossible with these controls!)
 				
-				break;
+					break;
 				case 2://erase
 					objHide(detonatorHolder);
-				break;
+					break;
 			}
 			
 			curMode = newMode;
@@ -242,13 +244,13 @@ function SETUP_leapmotion(){
 			switch(newMode){
 				case 0://draw
 					
-				break;
+					break;
 				case 1://prim only (should be impossible with these controls!)
 				
-				break;
+					break;
 				case 2://erase
 					objShow(detonatorHolder);
-				break;
+					break;
 			}
 			
 		},
@@ -323,9 +325,9 @@ function SETUP_leapmotion(){
 				detonatorHolder.position.copy(detonatorHandInfo.position);
 				detonatorHolder.quaternion.copy(detonatorHandInfo.quaternion);
 				
-				detonatorBase.rotation.y = (otherHand == 'Left') ? 0 : Math.PI ;
+				detonatorBase.rotation.y = (otherHand == 'Left') ? 0 : Math.PI;
 				
-				detonatorIsPressed = !isThumbUp(otherHand);
+				var detonatorIsPressed = !isThumbUp(otherHand);
 				detonatorButtonUp.visible = !detonatorIsPressed;
 				detonatorButtonDown.visible = detonatorIsPressed;
 				

@@ -1,3 +1,5 @@
+/* exported SETUP_cursor */
+/* global THREE, scene, objHide, objShow, toWorldUnits, enclosureInfo, skeletonInfo */
 function SETUP_cursor(){
 	
 	if (scene) {
@@ -128,13 +130,13 @@ function SETUP_cursor(){
 			switch(curMode){
 				case 0://draw
 					
-				break;
+					break;
 				case 1://prim
 				
-				break;
+					break;
 				case 2://erase
 				
-				break;
+					break;
 			}
 			
 			curMode = newMode;
@@ -142,13 +144,13 @@ function SETUP_cursor(){
 			switch(newMode){
 				case 0://draw
 					
-				break;
+					break;
 				case 1://prim
 				
-				break;
+					break;
 				case 2://erase
 				
-				break;
+					break;
 			}
 			
 		},
@@ -185,14 +187,14 @@ function SETUP_cursor(){
 					}
 					lastPos = fingerPos;
 					lastQuat = fingerQuat;
-				break;
+					break;
 				case 1://prim
 					
-				break;
+					break;
 				case 2://erase
 					fingerPos = lastRay.origin.clone();
 					fingerQuat.setFromUnitVectors(forwardUnit,lastRay.direction);
-				break;
+					break;
 				
 			}
 			
@@ -217,7 +219,7 @@ function SETUP_cursor(){
 			}
 			
 			if (!cursorWasDown) {
-				primMidpoint = getCursorWorld();
+				var primMidpoint = getCursorWorld();
 			}
 			cursorWasDown = true;
 			

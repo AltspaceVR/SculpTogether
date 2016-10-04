@@ -452,6 +452,7 @@
 	</div>
 	
 	<script>
+		/* global altspace, initControlSystems, controlSystems, setupResetSystem, resetRoom, detectControlSystemMode */
 		
 		
 		console.log("========================================================");
@@ -543,13 +544,13 @@
 			switch(curControlSystem){
 				case controlSystems.cursor:
 					effectivelyEnabled = enabled;
-				break;
+					break;
 				case controlSystems.leapmotion:
 					effectivelyEnabled = true;
-				break;
+					break;
 				case controlSystems.tracked:
 					effectivelyEnabled = enclosureSeesGamepad;
-				break;
+					break;
 			}
 			instructionsDiv.style.display = effectivelyEnabled ? "none" : "block";
 			controlsDiv.style.display = effectivelyEnabled ? "block" : "none";
@@ -568,10 +569,10 @@
 				case controlSystems.cursor:
 					enableButton.style.visibility = "hidden";
 					cursorInstructionsDiv.style.display = "none";
-				break;
+					break;
 				case controlSystems.leapmotion:
 				
-				break;
+					break;
 			}
 			
 			curControlSystem = newControlSystem;
@@ -583,12 +584,12 @@
 					editModeOptionInfo.myOptions[1].style.display = "none";
 					if (editModeOptionInfo.getCurVal() == 1) editModeOptionInfo.optionNumClick(0);//switch from "prim" to "draw+prim"
 					hideInitialSection();//if a click hasn't already, then move past the "click maybe" screen
-				break;
+					break;
 				case controlSystems.tracked:
 					editModeOptionInfo.myOptions[1].style.display = "block";
 					trackedInstructionsDiv.style.display = "block";
 					myExpectTrackedServer.set(true);
-				break;
+					break;
 				
 			}
 			
@@ -635,7 +636,7 @@
 			myUserPrefsServer.onDisconnect().set({});
 			
 			
-			var enclosureSeesGamepadServer = myUserPrefsServer.child('enclosureSeesGamepad')
+			var enclosureSeesGamepadServer = myUserPrefsServer.child('enclosureSeesGamepad');
 			enclosureSeesGamepadServer.on('value',function(snapshot){
 				enclosureSeesGamepad = snapshot.val();
 				console.log("new enclosureSeesGamepad:",enclosureSeesGamepad);
@@ -657,7 +658,7 @@
 			
 			
 			
-			document.getElementById('manualResetButton').addEventListener('click',function(){ resetRoom() });
+			document.getElementById('manualResetButton').addEventListener('click',function(){ resetRoom(); });
 			
 			
 			
@@ -726,7 +727,7 @@
 				var info = {};
 				info.getVal = function(){
 					return fracVal;
-				}
+				};
 				
 				return info;
 				

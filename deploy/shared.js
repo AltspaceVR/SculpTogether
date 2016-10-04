@@ -1,3 +1,6 @@
+/* global 
+	SETUP_cursor, SETUP_leapmotion, SETUP_tracked, curControlSystem, changeControlSystem, 
+	artServer, walkingDead, userInfo */
 var hasBeenFocused;
 
 window.addEventListener('focus',function(){
@@ -28,14 +31,10 @@ function detectControlSystemMode(){
 		
 		if (controlSystems.tracked.isAvailable()) {
 			changeControlSystem(controlSystems.tracked);
-		} else {
-			
-			if (curControlSystem != controlSystems.leapmotion){
+		} else if (curControlSystem != controlSystems.leapmotion){
 				
-				if (controlSystems.leapmotion.isAvailable()) {
-					changeControlSystem(controlSystems.leapmotion);
-				}
-				
+			if (controlSystems.leapmotion.isAvailable()) {
+				changeControlSystem(controlSystems.leapmotion);
 			}
 			
 		}
@@ -65,7 +64,7 @@ function setupResetSystem(isPopup){
 		var newWipeInfo = snapshot.val();
 		if (!newWipeInfo) console.log("no existing wipe info, this seems to be a new room!");
 		
-		var newWipeNum = newWipeInfo ? newWipeInfo.num : 1 ;
+		var newWipeNum = newWipeInfo ? newWipeInfo.num : 1;
 		console.log("current wipenum val:",newWipeNum);
 		
 		if (previousWipeNum) {

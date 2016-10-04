@@ -1,3 +1,5 @@
+/* exported SETUP_tracked */
+/* global THREE, altspace, hasBeenFocused, dominantHand, toWorldUnits */
 function SETUP_tracked(){
 	
 	
@@ -44,17 +46,16 @@ function SETUP_tracked(){
 				switch(curPadInfo.mapping){
 					case "standard":
 						continue;
-					break;
 					case "steamvr":
 						if (curPadInfo.hand == "left") {
 							padL = curPadInfo;
 						} else {
 							padR = curPadInfo;
 						}
-					break;
+						break;
 					default:
 						console.log("UNKNOWN CONTROLLER TYPE??",curPadInfo.mapping);
-					break;
+						break;
 				}
 			}
 			
@@ -63,7 +64,7 @@ function SETUP_tracked(){
 				return false;
 			}
 			
-			pads = {'Right':padR,'Left':padL};
+			pads = {Right:padR,Left:padL};
 			return true;
 			
 		},
@@ -81,13 +82,13 @@ function SETUP_tracked(){
 			switch(curMode){
 				case 0://draw
 				
-				break;
+					break;
 				case 1://prim only
 				
-				break;
+					break;
 				case 2://erase
 					
-				break;
+					break;
 			}
 			
 			curMode = newMode;
@@ -95,13 +96,13 @@ function SETUP_tracked(){
 			switch(newMode){
 				case 0://draw
 					
-				break;
+					break;
 				case 1://prim only
 				
-				break;
+					break;
 				case 2://erase
 					
-				break;
+					break;
 			}
 			
 		},
@@ -135,14 +136,14 @@ function SETUP_tracked(){
 			
 			if (curMode != 1) return false;
 			
-			if (!pads['Right'].buttons[GRIPINDEX].pressed) return false;
-			if (!pads['Left'].buttons[GRIPINDEX].pressed) return false;
+			if (!pads.Right.buttons[GRIPINDEX].pressed) return false;
+			if (!pads.Left.buttons[GRIPINDEX].pressed) return false;
 			
-			var rightQuat = new THREE.Quaternion().copy(pads['Right'].rotation);
-			var leftQuat = new THREE.Quaternion().copy(pads['Left'].rotation);
+			var rightQuat = new THREE.Quaternion().copy(pads.Right.rotation);
+			var leftQuat = new THREE.Quaternion().copy(pads.Left.rotation);
 			
-			var rightPinch = new THREE.Vector3().copy(pads['Right'].position);
-			var leftPinch = new THREE.Vector3().copy(pads['Left'].position);
+			var rightPinch = new THREE.Vector3().copy(pads.Right.position);
+			var leftPinch = new THREE.Vector3().copy(pads.Left.position);
 			
 			var offDist = toWorldUnits(1);
 			
