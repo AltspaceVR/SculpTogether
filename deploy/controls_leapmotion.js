@@ -325,7 +325,7 @@ function SETUP_leapmotion(){
 				detonatorHolder.position.copy(detonatorHandInfo.position);
 				detonatorHolder.quaternion.copy(detonatorHandInfo.quaternion);
 				
-				detonatorBase.rotation.y = (otherHand == 'Left') ? 0 : Math.PI;
+				detonatorBase.rotation.y = (otherHand == 'Left') ? 0 : Math.PI ;
 				
 				var detonatorIsPressed = !isThumbUp(otherHand);
 				detonatorButtonUp.visible = !detonatorIsPressed;
