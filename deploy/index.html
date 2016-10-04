@@ -160,10 +160,20 @@
 			console.log("TELLING POPUP WE CAN SEE THE GAMEPAD!");
 			enclosureSeesGamepadServer.set(true);
 		}
+		
+		stopAllInProgressDrawing();
 	}
 	
 	
 	
+	var curPointsServer = null;
+	var cubeInProgress = null;
+	
+	function stopAllInProgressDrawing(){
+		console.log("resetting all drawing in progress...");
+		curPointsServer = null;
+		cubeInProgress = null;
+	}
 	
 	
 	
@@ -499,10 +509,10 @@
 			var myPrimsServer = myDrawingServer.child('prims');
 			var myPrefsServer = myDrawingServer.child('prefs');
 			
-			var curPointsServer = null;
+			curPointsServer = null;
 			var lastPos = null;
 			
-			var cubeInProgress = null;
+			cubeInProgress = null;
 			
 			myPrefsServer.child("enable").on("value",function(snapshot){
 				if (curControlSystem == controlSystems.cursor) curControlSystem.updateEnabledness( snapshot.val() );
@@ -532,6 +542,8 @@
 				
 				var newVal = snapshot.val();
 				editModeVal = newVal?newVal:0;
+				
+				stopAllInProgressDrawing();
 				
 				if (curControlSystem) curControlSystem.modeSwitch(editModeVal);
 				
@@ -759,9 +771,7 @@
 					
 					case 2://erase
 						
-						// oof this is pretty hard-codey right here
-						curPointsServer = null;
-						cubeInProgress = null;
+						
 						
 						var detonatorIsPressed = curControlSystem.getDetonatorPressed();
 						
