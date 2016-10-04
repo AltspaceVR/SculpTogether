@@ -1,0 +1,52 @@
+{
+	"extends": "airbnb/legacy",
+	"env": {
+		"browser": true,
+		"es6": true,
+		"node": false
+	},
+	"plugins": [
+		"html"
+	],
+	"rules": {
+		"comma-spacing": "off",
+		"space-before-function-paren": "off",
+		"key-spacing": "off",
+		"block-spacing": "off",
+		"space-in-parens": "off",
+		"object-curly-spacing": "off",
+		"spaced-comment": "off",
+		"space-before-blocks": "off",
+		"no-trailing-spaces": "off",
+		"space-infix-ops": "off",
+		"keyword-spacing": "off",
+		"padded-blocks": "off",
+		"no-multiple-empty-lines": "off",
+		"no-tabs": "off",
+		"indent": ["error", "tab", {"SwitchCase": 1}],
+
+		"quotes": "off",
+		"max-len": ["error", 160],
+		"vars-on-top": "off",
+		"no-console": "off",
+		"one-var": "off",
+		"one-var-declaration-per-line": "off",
+
+		"func-names": "off",
+		"eqeqeq": "off",
+		"no-plusplus": "off",
+		"no-unneeded-ternary": "off",
+		"no-use-before-define": "off",
+		"no-param-reassign": "off",
+		"no-shadow": "off",
+		"no-unused-vars": ["error", {"args": "none"}],
+		"new-cap": "off",
+		"no-mixed-operators": "off",
+		"no-restricted-syntax": [
+			"error",
+			"DebuggerStatement",
+			"LabeledStatement",
+			"WithStatement"
+		]
+	}
+}

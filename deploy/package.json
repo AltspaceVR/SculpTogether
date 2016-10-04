@@ -1,0 +1,12 @@
+{
+  "name": "SculpTogether",
+  "version": "1.0.0",
+  "devDependencies": {
+    "eslint": "^3.7.0",
+    "eslint-config-airbnb": "^12.0.0",
+    "eslint-plugin-html": "^1.5.3",
+    "eslint-plugin-import": "^1.16.0",
+    "eslint-plugin-jsx-a11y": "^2.2.2",
+    "eslint-plugin-react": "^6.3.0"
+  }
+}

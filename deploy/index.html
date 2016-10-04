@@ -53,7 +53,8 @@
 	
 	
 	<script>
-	
+	/* exported objHide, objShow, quatDist, dominantHand, otherHand */	
+	/* global THREE, altspace, controlSystems, initControlSystems, setupResetSystem, detectControlSystemMode */
 	
 	
 	
@@ -123,7 +124,7 @@
 	
 	
 	
-	var enclosureInfo,skeletonInfo,userInfo,popupInfo,firebaseInfo;
+	var enclosureInfo,skeletonInfo,userInfo,firebaseInfo;
 	
 	var scene;
 	var ppm;
@@ -161,8 +162,6 @@
 		}
 		
 		// oof this is pretty hard-codey right here
-		curPointsServer = null;
-		cubeInProgress = null;
 	}
 	
 	
@@ -214,10 +213,7 @@
 								fullPath('popup.html',true),
 								'_experience',
 								{ icon:fullPath('popup_icon.png',false), hidden:true }
-							).then(function(_popupInfo){
-								
-								popupInfo = _popupInfo;
-								
+							).then(function(){
 								altspace.utilities.sync.connect({
 									authorId:'ravenworks',
 									appId:'sculpTogether',
@@ -345,7 +341,7 @@
 				
 				
 				
-				var myStrokesList = {};
+				var myStrokesList = new Map();
 				if (isMe) personalStrokesList = myStrokesList;
 				
 				snapshot.ref().child("strokes").on("child_added",function(snapshot,prevChildKey){
@@ -366,7 +362,7 @@
 					var curStrokeInfo = {};
 					curStrokeInfo.material = ribbonMat;
 					curStrokeInfo.meshes = [];
-					myStrokesList[snapshot.key()] = curStrokeInfo;
+					myStrokesList.set(snapshot.key(), curStrokeInfo);
 					
 					
 					
@@ -417,19 +413,19 @@
 				snapshot.ref().child("strokes").on("child_removed",function(deadSnapshot){
 					
 					var key = deadSnapshot.key();
-					var piecesList = myStrokesList[key].meshes;
+					var piecesList = myStrokesList.get(key).meshes;
 					for(var i=0; i<piecesList.length; i++) scene.remove(piecesList[i]);
 					//is it important to also disconnect the snapshot that's listening for new points?
 					//(or to do so when each stroke is done being drawn, for that matter?)
 					//it probably doesn't cost much just to listen so I guess I'll leave it be for now...
-					delete myStrokesList[key];
+					myStrokesList.delete(key);
 					
 				});
 				
 				
 				
 				
-				var myPrimsList = {};
+				var myPrimsList = new Map();
 				if (isMe) personalPrimsList = myPrimsList;
 				
 				function applyTransformFromArray(obj,transList){
@@ -459,19 +455,19 @@
 					primMesh.name = "SOME PRIM";
 					scene.add(primMesh);
 					
-					myPrimsList[snapshot.key()] = primMesh;
+					myPrimsList.set(snapshot.key(), primMesh);
 					
 				});
 				snapshot.ref().child("prims").on("child_changed",function(snapshot,prevChildKey){
 					
-					applyTransformFromArray(myPrimsList[snapshot.key()],snapshot.val().transform);
+					applyTransformFromArray(myPrimsList.get(snapshot.key()),snapshot.val().transform);
 					
 				});
 				snapshot.ref().child("prims").on("child_removed",function(deadSnapshot){
 					
 					var key = deadSnapshot.key();
-					scene.remove(myPrimsList[key]);
-					delete myPrimsList[key];
+					scene.remove(myPrimsList.get(key));
+					myPrimsList.delete(key);
 					
 				});
 				
@@ -753,14 +749,14 @@
 						tryDrawing();
 						tryPrimming();//should be automatically discarded by prim-only control systems...
 						
-					break;
+						break;
 					
 					
 					case 1://prim-only
 						
 						tryPrimming();
 						
-					break;
+						break;
 					
 					
 					case 2://erase
@@ -787,8 +783,8 @@
 							var closestKey;
 							var closestIsPrim;
 							
-							for(var primKey in personalPrimsList){
-								var curPrim = personalPrimsList[primKey];
+							for(var prim of personalPrimsList){
+								var curPrim = prim[1];
 								if (pointRay.isIntersectionBox(curPrim.boundBox)) {
 									//this is just an approximation; doesn't account for grazing instead of aiming dead center
 									var centerGap = curPointingInfo.fingerPos.distanceTo(curPrim.position);
@@ -797,24 +793,24 @@
 									if (centerGap < toWorldUnits(curPointingInfo.pointSafeDist)) {
 										if (centerGap < closestDist) {
 											closestDist = centerGap;
-											closestKey = primKey;
+											closestKey = prim[0];
 											closestIsPrim = true;
 										}
 									}
 								}
 							}
 							
-							for(var strokeKey in personalStrokesList){
-								var curStroke = personalStrokesList[strokeKey];
+							for(var stroke of personalStrokesList){
+								var curStroke = stroke[1];
 								for(var i=0; i<curStroke.meshes.length; i++){
 									var curMesh = curStroke.meshes[i];
 									if (pointRay.isIntersectionBox(curMesh.boundBox)) {
 										//see above for how rough this is
-										var centerGap = curPointingInfo.fingerPos.distanceTo(curMesh.boundBox.center());
-										if (centerGap < toWorldUnits(curPointingInfo.pointSafeDist)) {
-											if (centerGap < closestDist) {
-												closestDist = centerGap;
-												closestKey = strokeKey;
+										var strokeCenterGap = curPointingInfo.fingerPos.distanceTo(curMesh.boundBox.center());
+										if (strokeCenterGap < toWorldUnits(curPointingInfo.pointSafeDist)) {
+											if (strokeCenterGap < closestDist) {
+												closestDist = strokeCenterGap;
+												closestKey = stroke[0];
 												closestIsPrim = false;
 											}
 										}
@@ -826,7 +822,7 @@
 								if (detonatorIsPressed && !detonatorWasPressed) {
 									(closestIsPrim?myPrimsServer:myStrokesServer).child(closestKey).remove();
 								} else {
-									highlightingMat = (closestIsPrim?personalPrimsList:personalStrokesList)[closestKey].material;
+									highlightingMat = (closestIsPrim?personalPrimsList:personalStrokesList).get(closestKey).material;
 									highlightingMat.color = new THREE.Color("hsl(0, 0%, "+Math.round(100*(Math.sin(Date.now()/100)*0.5+0.5))+"%)");
 								}
 							}
@@ -837,9 +833,10 @@
 						
 						detonatorWasPressed = detonatorIsPressed;
 						
-					break;
-					
-					
+						break;
+
+					default:
+						throw new Error('Invalid edit mode');
 				}
 				
 				
