@@ -31,10 +31,14 @@ function detectControlSystemMode(){
 		
 		if (controlSystems.tracked.isAvailable()) {
 			changeControlSystem(controlSystems.tracked);
-		} else if (curControlSystem != controlSystems.leapmotion){
+		} else {
+			
+			if (curControlSystem != controlSystems.leapmotion){
 				
-			if (controlSystems.leapmotion.isAvailable()) {
-				changeControlSystem(controlSystems.leapmotion);
+				if (controlSystems.leapmotion.isAvailable()) {
+					changeControlSystem(controlSystems.leapmotion);
+				}
+				
 			}
 			
 		}
