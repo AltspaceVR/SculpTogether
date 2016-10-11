@@ -180,8 +180,62 @@
 	
 	
 	function altspaceSetup(){
-		
-		
+
+		if (!altspace.inClient) {
+			altspace.getGamepads = function () { return []; };
+			altspace.getEnclosure = function () {
+				return Promise.resolve({
+					innerDepth: 1280
+				});
+			};
+			altspace.getUser = function () {
+				return Promise.resolve({
+					userId: '12341234'
+				});
+			};
+			altspace.open = function () {
+				return Promise.resolve({});
+			};
+			altspace.getThreeJSTrackingSkeleton = function () {
+				return Promise.resolve({
+					getJoint: function () {
+						return new THREE.Object3D();
+					}
+				});
+			};
+			altspace.getThreeJSRenderer = function () {
+				var renderer = new THREE.WebGLRenderer({antialias: true});
+				var camera = new THREE.PerspectiveCamera();
+				camera.position.z = 500;
+
+				var resizeRender = function () {
+					camera.aspect = window.innerWidth / window.innerHeight;
+					camera.updateProjectionMatrix();
+					renderer.setSize(window.innerWidth, window.innerHeight);
+				};
+				document.body.style.margin = '0px';
+				document.body.style.overflow = 'hidden';
+				renderer.setClearColor('#035F72');
+				var container = document.createElement('div');
+				document.body.appendChild(container);
+				container.appendChild(renderer.domElement);
+				window.addEventListener('resize', resizeRender);
+				resizeRender();
+				camera.fov = 45;
+				camera.near = 1;
+				camera.far = 2000;
+				var added = false;
+				return { render: function (scene) {
+					if (!added) {
+						scene.add(camera);
+						scene.add(new THREE.AmbientLight('white'));
+						added = true;
+					}
+					renderer.render(scene, camera);
+				}};
+			};
+		}
+
 		altspace.getEnclosure().then(function(_enclosureInfo){
 			enclosureInfo = _enclosureInfo;
 			
@@ -279,7 +333,8 @@
 			ribbonCtx.fillStyle = ribbonGrad;
 			ribbonCtx.fillRect(0,0,ribbonCanvas.width,ribbonCanvas.height);
 			var ribbonTex = new THREE.Texture(ribbonCanvas);
-			
+			ribbonTex.needsUpdate = true;
+
 			var sphereCanvas = document.createElement('canvas');
 			sphereCanvas.width = sphereCanvas.height = 16;
 			var sphereCtx = sphereCanvas.getContext('2d');
@@ -351,8 +406,8 @@
 				
 				var myStrokesList = new Map();
 				if (isMe) personalStrokesList = myStrokesList;
-				
-				//*
+
+				/*
 				snapshot.ref().child("strokes").on("child_added",function(snapshot,prevChildKey){
 					
 					
@@ -420,21 +475,22 @@
 				});
 				//*/
 
-				/*
+				//*
 				var lastPointKey = null;
 				var lastPointInfo = null;
 				snapshot.ref().child("strokes").once("value", function (snapshot) {
 					var groupGeom = new THREE.Geometry();
 					var strokes = snapshot.val();
+					var ribbonMat;
 					Object.keys(strokes).slice(0, 50).forEach(function (key) {
 						var stroke = strokes[key];
 						var lastPointKey = null;
 						var lastPointInfo = null;
 						var points = stroke.points;
 						var realColor = new THREE.Color(stroke.color);
-						var ribbonMat = new THREE.MeshBasicMaterial({
+						ribbonMat = new THREE.MeshBasicMaterial({
 							map:ribbonTex,
-							color:realColor
+							vertexColors: THREE.VertexColors
 						});
 						ribbonMat.side = THREE.DoubleSide;
 						ribbonMat.realColor = realColor;//CUSTOM PROPERTY, hopefully this is safe? >_>
@@ -450,26 +506,25 @@
 								lastPointInfo.vertices[0], lastPointInfo.vertices[1],
 								curPointInfo.vertices[0], curPointInfo.vertices[1]
 							);
-							newGeom.faces.push( new THREE.Face3(0,1,2), new THREE.Face3(2,1,3) );
+							newGeom.faces.push( new THREE.Face3(0,1,2, null, realColor), new THREE.Face3(2,1,3, null, realColor) );
 							newGeom.faceVertexUvs = [[
 								[new THREE.Vector2(0,0),new THREE.Vector2(0,1),new THREE.Vector2(1,0)],
 								[new THREE.Vector2(1,0),new THREE.Vector2(0,1),new THREE.Vector2(1,1)]
 							]];
+							newGeom.colorsNeedUpdate = true;
 							newGeom.computeVertexNormals();
-							var newMesh = new THREE.Mesh( newGeom, ribbonMat );
+							var newMesh = new THREE.Mesh( newGeom, new THREE.MeshBasicMaterial() );
 							groupGeom.mergeMesh(newMesh);
 							lastPointInfo = curPointInfo;
 						});
 					});
-					scene.add(new THREE.Mesh(
-						groupGeom,
-						new THREE.MeshBasicMaterial()
-					));
+					groupGeom.colorsNeedUpdate = true;
+					scene.add(new THREE.Mesh(groupGeom, ribbonMat));
 				});
-				*/
-				
+				//*/
+
 				snapshot.ref().child("strokes").on("child_removed",function(deadSnapshot){
-					
+
 					var key = deadSnapshot.key();
 					var piecesList = myStrokesList.get(key).meshes;
 					for(var i=0; i<piecesList.length; i++) scene.remove(piecesList[i]);

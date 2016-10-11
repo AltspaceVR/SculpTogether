@@ -56,6 +56,7 @@ function SETUP_cursor(){
 	var lastPos;
 	var lastQuat;
 	var lastUnit;
+	var primMidpoint;
 	function cursorUpFunc(e){
 		cursorIsDown = false;
 		lastPos = false;
@@ -219,7 +220,7 @@ function SETUP_cursor(){
 			}
 			
 			if (!cursorWasDown) {
-				var primMidpoint = getCursorWorld();
+				primMidpoint = getCursorWorld();
 			}
 			cursorWasDown = true;
 			
