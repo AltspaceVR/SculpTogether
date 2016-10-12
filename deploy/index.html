@@ -481,17 +481,16 @@
 				snapshot.ref().child("strokes").once("value", function (snapshot) {
 					var groupGeom = new THREE.Geometry();
 					var strokes = snapshot.val();
-					var ribbonMat;
+					var ribbonMat = new THREE.MeshBasicMaterial({
+						map:ribbonTex,
+						vertexColors: THREE.VertexColors
+					});
 					Object.keys(strokes).slice(0, 50).forEach(function (key) {
 						var stroke = strokes[key];
 						var lastPointKey = null;
 						var lastPointInfo = null;
 						var points = stroke.points;
 						var realColor = new THREE.Color(stroke.color);
-						ribbonMat = new THREE.MeshBasicMaterial({
-							map:ribbonTex,
-							vertexColors: THREE.VertexColors
-						});
 						ribbonMat.side = THREE.DoubleSide;
 						ribbonMat.realColor = realColor;//CUSTOM PROPERTY, hopefully this is safe? >_>
 						Object.keys(points).forEach(function (curPointKey) {
@@ -506,19 +505,20 @@
 								lastPointInfo.vertices[0], lastPointInfo.vertices[1],
 								curPointInfo.vertices[0], curPointInfo.vertices[1]
 							);
-							newGeom.faces.push( new THREE.Face3(0,1,2, null, realColor), new THREE.Face3(2,1,3, null, realColor) );
+							newGeom.faces.push(
+								new THREE.Face3(0,1,2, null, realColor),
+								new THREE.Face3(2,1,3, null, realColor)
+							);
 							newGeom.faceVertexUvs = [[
 								[new THREE.Vector2(0,0),new THREE.Vector2(0,1),new THREE.Vector2(1,0)],
 								[new THREE.Vector2(1,0),new THREE.Vector2(0,1),new THREE.Vector2(1,1)]
 							]];
-							newGeom.colorsNeedUpdate = true;
 							newGeom.computeVertexNormals();
-							var newMesh = new THREE.Mesh( newGeom, new THREE.MeshBasicMaterial() );
+							var newMesh = new THREE.Mesh( newGeom, ribbonMat );
 							groupGeom.mergeMesh(newMesh);
 							lastPointInfo = curPointInfo;
 						});
 					});
-					groupGeom.colorsNeedUpdate = true;
 					scene.add(new THREE.Mesh(groupGeom, ribbonMat));
 				});
 				//*/
