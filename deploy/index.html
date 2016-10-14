@@ -9,6 +9,8 @@
 	<title>SculpTogether</title>
 	
 	<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r73/three.js"></script>
+	<script src="https://cdn.rawgit.com/mrdoob/three.js/r73/examples/js/controls/OrbitControls.js"></script>
+
 	<script src="http://sdk.altvr.com/libs/altspace.js/0.14.1/altspace.js"></script>
 	
 	
@@ -205,8 +207,9 @@
 			};
 			altspace.getThreeJSRenderer = function () {
 				var renderer = new THREE.WebGLRenderer({antialias: true});
-				var camera = new THREE.PerspectiveCamera();
-				camera.position.z = 500;
+				var camera = window.camera = new THREE.PerspectiveCamera();
+				camera.position.set(-128.13608, 173.316015, -27.533011);
+				camera.rotation.set(-1.62704944, -0.147098734, -1.937612942);
 
 				var resizeRender = function () {
 					camera.aspect = window.innerWidth / window.innerHeight;
@@ -215,12 +218,13 @@
 				};
 				document.body.style.margin = '0px';
 				document.body.style.overflow = 'hidden';
-				renderer.setClearColor('#035F72');
+				renderer.setClearColor('black');
 				var container = document.createElement('div');
 				document.body.appendChild(container);
 				container.appendChild(renderer.domElement);
 				window.addEventListener('resize', resizeRender);
 				resizeRender();
+				//var controls = new THREE.OrbitControls(camera);
 				camera.fov = 45;
 				camera.near = 1;
 				camera.far = 2000;
@@ -231,6 +235,7 @@
 						scene.add(new THREE.AmbientLight('white'));
 						added = true;
 					}
+					//controls.update();
 					renderer.render(scene, camera);
 				}};
 			};
@@ -480,20 +485,26 @@
 				var lastPointInfo = null;
 				snapshot.ref().child("strokes").once("value", function (snapshot) {
 					var groupGeom = new THREE.Geometry();
+					var vertexCount = 0;
 					var strokes = snapshot.val();
 					var ribbonMat = new THREE.MeshBasicMaterial({
 						map:ribbonTex,
-						vertexColors: THREE.VertexColors
+						vertexColors: THREE.FaceColors
 					});
-					Object.keys(strokes).slice(0, 50).forEach(function (key) {
+					ribbonMat.side = THREE.DoubleSide;
+					var strokeKeys = Object.keys(strokes);
+					var numPoints = 0;
+					console.log(strokeKeys.length);
+					var start = performance.now();
+					strokeKeys.forEach(function (key) {
 						var stroke = strokes[key];
 						var lastPointKey = null;
 						var lastPointInfo = null;
 						var points = stroke.points;
 						var realColor = new THREE.Color(stroke.color);
-						ribbonMat.side = THREE.DoubleSide;
-						ribbonMat.realColor = realColor;//CUSTOM PROPERTY, hopefully this is safe? >_>
-						Object.keys(points).forEach(function (curPointKey) {
+						var pointKeys = Object.keys(points);
+						numPoints += pointKeys.length;
+						pointKeys.forEach(function (curPointKey) {
 							var curPointInfo = points[curPointKey];
 							var v0 = curPointInfo.vertices[0];
 							curPointInfo.vertices[0] = new THREE.Vector3(v0.x, v0.y, v0.z);
@@ -516,9 +527,16 @@
 							newGeom.computeVertexNormals();
 							var newMesh = new THREE.Mesh( newGeom, ribbonMat );
 							groupGeom.mergeMesh(newMesh);
+							vertexCount += 6;
+							if (vertexCount >= 50000) {
+								scene.add(new THREE.Mesh(groupGeom, ribbonMat));
+								groupGeom = new THREE.Geometry();
+								vertexCount = 0;
+							}
 							lastPointInfo = curPointInfo;
 						});
 					});
+					console.log(performance.now() - start, 'generating geo', numPoints);
 					scene.add(new THREE.Mesh(groupGeom, ribbonMat));
 				});
 				//*/
@@ -566,7 +584,7 @@
 					primMesh.boundBox = new THREE.Box3(new THREE.Vector3(0,0,0),new THREE.Vector3(1,1,1));
 					applyTransformFromArray(primMesh,primSource.transform);
 					primMesh.name = "SOME PRIM";
-					// scene.add(primMesh);
+					//scene.add(primMesh);
 					
 					myPrimsList.set(snapshot.key(), primMesh);
 					
