@@ -351,20 +351,20 @@
 			var primCtx = primCanvas.getContext('2d');
 			primCtx.scale(16,16);
 
-			var primGrad = primCtx.createLinearGradient(0,0,0,1);
-			primGrad.addColorStop(0,"#FFF");
-			primGrad.addColorStop(1,"#444");
-			primCtx.fillStyle = primGrad;
+			var sphereGrad = primCtx.createLinearGradient(0,0,0,1);
+			sphereGrad.addColorStop(0,"#FFF");
+			sphereGrad.addColorStop(1,"#444");
+			primCtx.fillStyle = sphereGrad;
 			primCtx.fillRect(0,0,1,1);
 			
 			primCtx.translate(1, 0);
 			primCtx.fillStyle = "#777";
 			primCtx.fillRect(0,0,1,1);
 
-			var primGrad = primCtx.createRadialGradient(0.5,0.5,0, 0.5,0.5,0.5/Math.cos(Math.PI/4));
-			primGrad.addColorStop(0,"#FFF");
-			primGrad.addColorStop(1,"#AAA");
-			primCtx.fillStyle = primGrad;
+			var cubeGrad = primCtx.createRadialGradient(0.5,0.5,0, 0.5,0.5,0.5/Math.cos(Math.PI/4));
+			cubeGrad.addColorStop(0,"#FFF");
+			cubeGrad.addColorStop(1,"#AAA");
+			primCtx.fillStyle = cubeGrad;
 			var primMargin = 0.05;
 			primCtx.fillRect(primMargin,primMargin,1-primMargin*2,1-primMargin*2);
 
@@ -377,14 +377,18 @@
 				new THREE.SphereGeometry(0.5,16,16),
 				new THREE.BoxGeometry(1,1,1)
 			];
-			primGeoms[0].faceVertexUvs[0].forEach(function (face) { face.forEach(function (uv) { 
-				uv.x = 0.4;
-			}); })
+			primGeoms[0].faceVertexUvs[0].forEach(function (face) { 
+				face.forEach(function (uv) { 
+					uv.x = 0.4;
+				});
+			});
 			var cubeUvScale = new THREE.Vector2(0.46, 1);
-			primGeoms[1].faceVertexUvs[0].forEach(function (face) { face.forEach(function (uv) {
-				uv.multiply(cubeUvScale);
-				uv.x += 0.479;
-			}); })
+			primGeoms[1].faceVertexUvs[0].forEach(function (face) { 
+				face.forEach(function (uv) {
+					uv.multiply(cubeUvScale);
+					uv.x += 0.479;
+				});
+			});
 			
 			
 			
