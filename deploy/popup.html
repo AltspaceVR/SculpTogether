@@ -390,7 +390,7 @@
 						<div class="sectionHeader">Handedness:</div>
 						<div id="handOptionsHolder"></div>
 					</div>
-					<div class="column">
+					<div class="column" id="resetSection">
 						<div class="sectionHeader">Room clear:</div>
 						<div class="resetText">
 							<div id="previousResetInfo"></div>
@@ -658,7 +658,12 @@
 			
 			
 			
-			document.getElementById('manualResetButton').addEventListener('click',function(){ resetRoom(); });
+			var manualResetButton = document.getElementById('manualResetButton');
+			if (!userInfo.isModerator) {
+				manualResetButton.disabled = true;
+				document.getElementById('resetSection').style.display = 'none';
+			}
+			manualResetButton.addEventListener('click',function(){ resetRoom(); });
 			
 			
 			
