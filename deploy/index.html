@@ -8,8 +8,8 @@
 	
 	<title>SculpTogether</title>
 	
-	<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r73/three.js"></script>
-	<script src="https://cdn.rawgit.com/mrdoob/three.js/r73/examples/js/controls/OrbitControls.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r74/three.js"></script>
+	<script src="https://cdn.rawgit.com/mrdoob/three.js/r74/examples/js/controls/OrbitControls.js"></script>
 
 	<script src="http://sdk.altvr.com/libs/altspace.js/0.14.1/altspace.js"></script>
 	
@@ -90,6 +90,7 @@
 	
 	function makeIntangible(newMesh){
 		newMesh.userData.altspace = {collider:{enabled:false}};
+		return newMesh;
 	}
 	
 	
@@ -184,6 +185,7 @@
 	function altspaceSetup(){
 
 		if (!altspace.inClient) {
+			// Hacky little shim so that the app renders in a desktop browser
 			altspace.getGamepads = function () { return []; };
 			altspace.getEnclosure = function () {
 				return Promise.resolve({
@@ -208,8 +210,7 @@
 			altspace.getThreeJSRenderer = function () {
 				var renderer = new THREE.WebGLRenderer({antialias: true});
 				var camera = window.camera = new THREE.PerspectiveCamera();
-				camera.position.set(-128.13608, 173.316015, -27.533011);
-				camera.rotation.set(-1.62704944, -0.147098734, -1.937612942);
+				camera.position.set(0, 0, 200);
 
 				var resizeRender = function () {
 					camera.aspect = window.innerWidth / window.innerHeight;
@@ -218,13 +219,13 @@
 				};
 				document.body.style.margin = '0px';
 				document.body.style.overflow = 'hidden';
-				renderer.setClearColor('black');
+				renderer.setClearColor('grey');
 				var container = document.createElement('div');
 				document.body.appendChild(container);
 				container.appendChild(renderer.domElement);
 				window.addEventListener('resize', resizeRender);
 				resizeRender();
-				//var controls = new THREE.OrbitControls(camera);
+				var controls = new THREE.OrbitControls(camera);
 				camera.fov = 45;
 				camera.near = 1;
 				camera.far = 2000;
@@ -235,7 +236,7 @@
 						scene.add(new THREE.AmbientLight('white'));
 						added = true;
 					}
-					//controls.update();
+					controls.update();
 					renderer.render(scene, camera);
 				}};
 			};
@@ -318,7 +319,9 @@
 			
 			
 			
-			var renderer = altspace.getThreeJSRenderer({profile: true, initialSerializationBufferSize: 8388608});
+			// Start with a large serialization buffer. 
+			// 8.5MB Determined by loading an existing instance with a lot of art.
+			var renderer = altspace.getThreeJSRenderer({initialSerializationBufferSize: 8500000});
 			scene = new THREE.Scene();
 			
 			
@@ -340,27 +343,33 @@
 			var ribbonTex = new THREE.Texture(ribbonCanvas);
 			ribbonTex.needsUpdate = true;
 
-			var sphereCanvas = document.createElement('canvas');
-			sphereCanvas.width = sphereCanvas.height = 16;
-			var sphereCtx = sphereCanvas.getContext('2d');
-			var sphereGrad = sphereCtx.createLinearGradient(0,0,0,sphereCanvas.height);
-			sphereGrad.addColorStop(0,"#FFF");
-			sphereGrad.addColorStop(1,"#444");
-			sphereCtx.fillStyle = sphereGrad;
-			sphereCtx.fillRect(0,0,sphereCanvas.width,sphereCanvas.height);
+			var primCanvas = document.createElement('canvas');
+			// TODO: Tweaked the canvas width here and the UV factors below to avoid textures overflowing into 
+			// eachother. Perhaps the tweaks can be eliminated, but this works for now.
+			primCanvas.width = 34;
+			primCanvas.height = 16;
+			var primCtx = primCanvas.getContext('2d');
+			primCtx.scale(16,16);
+
+			var primGrad = primCtx.createLinearGradient(0,0,0,1);
+			primGrad.addColorStop(0,"#FFF");
+			primGrad.addColorStop(1,"#444");
+			primCtx.fillStyle = primGrad;
+			primCtx.fillRect(0,0,1,1);
 			
-			var cubeCanvas = document.createElement('canvas');
-			cubeCanvas.width = cubeCanvas.height = 32;
-			var cubeCtx = cubeCanvas.getContext('2d');
-			cubeCtx.scale(cubeCanvas.width,cubeCanvas.height);
-			cubeCtx.fillStyle = "#777";
-			cubeCtx.fillRect(0,0,1,1);
-			var cubeGrad = cubeCtx.createRadialGradient(0.5,0.5,0, 0.5,0.5,0.5/Math.cos(Math.PI/4));
-			cubeGrad.addColorStop(0,"#FFF");
-			cubeGrad.addColorStop(1,"#AAA");
-			cubeCtx.fillStyle = cubeGrad;
-			var cubeMargin = 0.05;
-			cubeCtx.fillRect(cubeMargin,cubeMargin,1-cubeMargin*2,1-cubeMargin*2);
+			primCtx.translate(1, 0);
+			primCtx.fillStyle = "#777";
+			primCtx.fillRect(0,0,1,1);
+
+			var primGrad = primCtx.createRadialGradient(0.5,0.5,0, 0.5,0.5,0.5/Math.cos(Math.PI/4));
+			primGrad.addColorStop(0,"#FFF");
+			primGrad.addColorStop(1,"#AAA");
+			primCtx.fillStyle = primGrad;
+			var primMargin = 0.05;
+			primCtx.fillRect(primMargin,primMargin,1-primMargin*2,1-primMargin*2);
+
+			var primTex = new THREE.Texture(primCanvas);
+			primTex.needsUpdate = true;
 			
 			
 			
@@ -368,10 +377,14 @@
 				new THREE.SphereGeometry(0.5,16,16),
 				new THREE.BoxGeometry(1,1,1)
 			];
-			var primTexs = [
-				new THREE.Texture(sphereCanvas),
-				new THREE.Texture(cubeCanvas)
-			];
+			primGeoms[0].faceVertexUvs[0].forEach(function (face) { face.forEach(function (uv) { 
+				uv.x = 0.4;
+			}); })
+			var cubeUvScale = new THREE.Vector2(0.46, 1);
+			primGeoms[1].faceVertexUvs[0].forEach(function (face) { face.forEach(function (uv) {
+				uv.multiply(cubeUvScale);
+				uv.x += 0.479;
+			}); })
 			
 			
 			
@@ -412,7 +425,6 @@
 				var myStrokesList = new Map();
 				if (isMe) personalStrokesList = myStrokesList;
 
-				/*
 				snapshot.ref().child("strokes").on("child_added",function(snapshot,prevChildKey){
 					
 					
@@ -478,39 +490,34 @@
 					
 					
 				});
-				//*/
 
-				//*
-				var lastPointKey = null;
-				var lastPointInfo = null;
-				snapshot.ref().child("strokes").once("value", function (snapshot) {
+				var emptyMat = new THREE.MeshBasicMaterial();
+				var maxVertexCount = 50000;
+
+				snapshot.ref().child("mergedStrokes").on("child_added", function (snapshot) {
 					var groupGeom = new THREE.Geometry();
-					var vertexCount = 0;
-					var strokes = snapshot.val();
 					var ribbonMat = new THREE.MeshBasicMaterial({
 						map:ribbonTex,
 						vertexColors: THREE.FaceColors
 					});
 					ribbonMat.side = THREE.DoubleSide;
-					var strokeKeys = Object.keys(strokes);
-					var numPoints = 0;
-					console.log(strokeKeys.length);
-					var start = performance.now();
-					strokeKeys.forEach(function (key) {
-						var stroke = strokes[key];
-						var lastPointKey = null;
-						var lastPointInfo = null;
+					snapshot.forEach(function (snapshot) {
+						var stroke = snapshot.val();
 						var points = stroke.points;
+						if (!points) { return; }
+						var lastPointInfo = null;
 						var realColor = new THREE.Color(stroke.color);
 						var pointKeys = Object.keys(points);
-						numPoints += pointKeys.length;
 						pointKeys.forEach(function (curPointKey) {
 							var curPointInfo = points[curPointKey];
 							var v0 = curPointInfo.vertices[0];
 							curPointInfo.vertices[0] = new THREE.Vector3(v0.x, v0.y, v0.z);
 							var v1 = curPointInfo.vertices[1];
 							curPointInfo.vertices[1] = new THREE.Vector3(v1.x, v1.y, v1.z);
+
 							if (!lastPointInfo) { lastPointInfo = curPointInfo; return; }
+
+							// TODO: Some of this is very similar to the code above. Consider refactoring
 							var newGeom = new THREE.Geometry();
 							newGeom.vertices.push(
 								lastPointInfo.vertices[0], lastPointInfo.vertices[1],
@@ -525,24 +532,23 @@
 								[new THREE.Vector2(1,0),new THREE.Vector2(0,1),new THREE.Vector2(1,1)]
 							]];
 							newGeom.computeVertexNormals();
-							var newMesh = new THREE.Mesh( newGeom, ribbonMat );
+
+							var newMesh = new THREE.Mesh( newGeom, emptyMat );
 							groupGeom.mergeMesh(newMesh);
-							vertexCount += 6;
-							if (vertexCount >= 50000) {
-								scene.add(new THREE.Mesh(groupGeom, ribbonMat));
+
+							if (groupGeom.faces.length * 3 >= maxVertexCount) {
+								scene.add(makeIntangible(new THREE.Mesh(groupGeom, ribbonMat)));
 								groupGeom = new THREE.Geometry();
-								vertexCount = 0;
 							}
+
 							lastPointInfo = curPointInfo;
 						});
 					});
-					console.log(performance.now() - start, 'generating geo', numPoints);
-					scene.add(new THREE.Mesh(groupGeom, ribbonMat));
+					scene.add(makeIntangible(new THREE.Mesh(groupGeom, ribbonMat)));
 				});
-				//*/
 
 				snapshot.ref().child("strokes").on("child_removed",function(deadSnapshot){
-
+					
 					var key = deadSnapshot.key();
 					var piecesList = myStrokesList.get(key).meshes;
 					for(var i=0; i<piecesList.length; i++) scene.remove(piecesList[i]);
@@ -563,7 +569,7 @@
 					obj.position.set(transList[0],transList[1],transList[2]);
 					obj.rotation.set(transList[3],transList[4],transList[5]);
 					obj.scale.set(transList[6],transList[7],transList[8]);
-					if (isMe) obj.boundBox.setFromObject(obj);
+					if (isMe && obj.boundBox) obj.boundBox.setFromObject(obj);
 				}
 				
 				snapshot.ref().child("prims").on("child_added",function(snapshot,prevChildKey){
@@ -575,7 +581,7 @@
 					var primMesh = new THREE.Mesh(
 						primGeoms[primSource.typeIndex],
 						new THREE.MeshBasicMaterial({
-							map:primTexs[primSource.typeIndex],
+							map:primTex,
 							color:realColor
 						})
 					);
@@ -584,11 +590,42 @@
 					primMesh.boundBox = new THREE.Box3(new THREE.Vector3(0,0,0),new THREE.Vector3(1,1,1));
 					applyTransformFromArray(primMesh,primSource.transform);
 					primMesh.name = "SOME PRIM";
-					//scene.add(primMesh);
+					scene.add(primMesh);
 					
 					myPrimsList.set(snapshot.key(), primMesh);
 					
 				});
+				
+				snapshot.ref().child("mergedPrims").on("child_added",function(snapshot,prevChildKey){
+					var groupGeom = new THREE.Geometry();
+					var primMat = new THREE.MeshBasicMaterial({
+						map: primTex,
+						vertexColors: THREE.FaceColors
+					});
+					snapshot.forEach(function (snapshot) {
+						var primSource = snapshot.val();
+						
+						var realColor = new THREE.Color(primSource.color);
+
+						var primMesh = new THREE.Mesh(
+							primGeoms[primSource.typeIndex].clone(),
+							emptyMat
+						);
+						applyTransformFromArray(primMesh,primSource.transform);
+
+						primMesh.geometry.faces.forEach(function (face) {
+							face.color.copy(realColor);
+						});
+
+						groupGeom.mergeMesh(primMesh);
+						if (groupGeom.faces.length * 3 >= maxVertexCount) {
+							scene.add(makeIntangible(new THREE.Mesh(groupGeom, primMat)));
+							groupGeom = new THREE.Geometry();
+						}
+					});
+					scene.add(makeIntangible(new THREE.Mesh(groupGeom, primMat)));
+				});
+
 				snapshot.ref().child("prims").on("child_changed",function(snapshot,prevChildKey){
 					
 					applyTransformFromArray(myPrimsList.get(snapshot.key()),snapshot.val().transform);
@@ -629,7 +666,9 @@
 			
 			var myDrawingServer = usersServer.child(userInfo.userId);
 			var myStrokesServer = myDrawingServer.child('strokes');
+			var myMergedStrokesServer = myDrawingServer.child('mergedStrokes');
 			var myPrimsServer = myDrawingServer.child('prims');
+			var myMergedPrimsServer = myDrawingServer.child('mergedPrims');
 			var myPrefsServer = myDrawingServer.child('prefs');
 			
 			curPointsServer = null;
@@ -733,13 +772,39 @@
 			
 			
 			
+			function mergeObjects(mergeFromKey, objectsServer, mergedObjectsServer, mergeCount) {
+				var objectsToMergeQuery = objectsServer.orderByKey();
+				if (mergeFromKey) {
+					objectsToMergeQuery = objectsToMergeQuery.startAt(mergeFromKey);
+				}
+				objectsToMergeQuery = objectsToMergeQuery.limitToFirst(mergeCount);
+				// TODO: Is it too much network traffic to retrieve these objects only to move them 
+				// into mergedServer?
+				return new Promise(function (resolve) {
+					objectsToMergeQuery.once('value', function (snapshot) {
+						var objects = snapshot.val();
+						mergedObjectsServer.push(objects);
+						var lastRemovedKey;
+						snapshot.forEach(function (obj) {
+							obj.ref().remove();
+							lastRemovedKey = obj.key();
+						});
+						resolve(lastRemovedKey);
+					});
+				});
+			}
+			
 			
 			
 			var lastHighlightingMat;
 			var detonatorWasPressed = true;
 			
-			
-			
+			var mergeStrokesFromKey;
+			var mergePrimsFromKey;
+			var pointsCount = 0;
+			var primsCount = 0;
+			var mergeThreshold = 100;
+
 			function frameFunc() {
 				
 				
@@ -776,7 +841,6 @@
 					if (curPointingInfo) {
 						
 						if (!curPointsServer) {
-							
 							var curStrokeServer = myStrokesServer.push({color:nextColVal});
 							curPointsServer = curStrokeServer.child('points');
 							
@@ -791,6 +855,7 @@
 							
 							var newPoint = curPointsServer.push();
 							newPoint.set({vertices:[curPointingInfo.fingerPos,otherPos]});
+							pointsCount++;
 							
 							lastPos = curPointingInfo.fingerPos;
 							
@@ -799,6 +864,19 @@
 						
 						
 					} else {
+
+						if (pointsCount > mergeThreshold * 3) {
+							mergeObjects(
+								mergeStrokesFromKey, 
+								myStrokesServer, myMergedStrokesServer,
+								// TODO: We count points but we merge strokes, so this reduces the number of strokes
+								// we actually merge. There's probably a better way to do this.
+								Math.floor(mergeThreshold / 6)
+							).then(function (lastRemovedKey) {
+								mergeStrokesFromKey = lastRemovedKey; 
+							});
+							pointsCount = 0;
+						}
 						
 						curPointsServer = null;
 						
@@ -822,6 +900,7 @@
 							cubeInProgress = myPrimsServer.push();
 							dataToUpdate.typeIndex = nextShapeVal;
 							dataToUpdate.color = nextColVal;
+							primsCount++;
 							
 						}
 						
@@ -865,6 +944,17 @@
 						}
 						
 					} else {
+
+						if (primsCount > mergeThreshold) {
+							mergeObjects(
+								mergePrimsFromKey,
+								myPrimsServer, myMergedPrimsServer,
+								mergeThreshold / 2
+							).then(function (lastRemovedKey) {
+								mergePrimsFromKey = lastRemovedKey;
+							});
+							primsCount = 0;
+						}
 						
 						cubeInProgress = null;
 						
@@ -916,7 +1006,7 @@
 							
 							for(var prim of personalPrimsList){
 								var curPrim = prim[1];
-								if (pointRay.isIntersectionBox(curPrim.boundBox)) {
+								if (pointRay.intersectsBox(curPrim.boundBox)) {
 									//this is just an approximation; doesn't account for grazing instead of aiming dead center
 									var centerGap = curPointingInfo.fingerPos.distanceTo(curPrim.position);
 									//makes it a bit more accurate in case of giant shapes, but, doesn't account for cubes, or smooshed shapes once that's added
@@ -935,7 +1025,7 @@
 								var curStroke = stroke[1];
 								for(var i=0; i<curStroke.meshes.length; i++){
 									var curMesh = curStroke.meshes[i];
-									if (pointRay.isIntersectionBox(curMesh.boundBox)) {
+									if (pointRay.intersectsBox(curMesh.boundBox)) {
 										//see above for how rough this is
 										var strokeCenterGap = curPointingInfo.fingerPos.distanceTo(curMesh.boundBox.center());
 										if (strokeCenterGap < toWorldUnits(curPointingInfo.pointSafeDist)) {

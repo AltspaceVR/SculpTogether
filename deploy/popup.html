@@ -658,7 +658,9 @@
 			
 			
 			
-			document.getElementById('manualResetButton').addEventListener('click',function(){ resetRoom(); });
+			var manualResetButton = document.getElementById('manualResetButton');
+			manualResetButton.disabled = !userInfo.isModerator;
+			manualResetButton.addEventListener('click',function(){ resetRoom(); });
 			
 			
 			
