@@ -11,11 +11,18 @@ function SETUP_tracked(){
 	var curMode;
 	
 	var GRIPINDEX = 1;
+
+	// Call immediately to indicate that we want gamepad updates
+	altspace.getGamepads();
 	
 	
 	return {
 		
 		label:"tracked",
+
+		canDetermineAvailability: function () {
+			return hasBeenFocused;
+		},
 		
 		isAvailable:function(){
 			
@@ -23,15 +30,12 @@ function SETUP_tracked(){
 			var gamepadsList = altspace.getGamepads();//always ask regardless of anything
 			
 			
-			if (!hasBeenFocused) {
+			if (!this.canDetermineAvailability()) {
 				//console.log("tracked unavailable because HASN'T BEEN FOCUSED");
 				return false;
 			}
 			
-			
 			if (pads) return true;
-			
-			
 			
 			if (gamepadsList.length < 2) {
 				//console.log("tracked unavailable because ONLY",gamepadsList.length,"PADS");
@@ -46,7 +50,9 @@ function SETUP_tracked(){
 				switch(curPadInfo.mapping){
 					case "standard":
 						continue;
+					case "touch":
 					case "steamvr":
+						this.mapping = curPadInfo.mapping;
 						if (curPadInfo.hand == "left") {
 							padL = curPadInfo;
 						} else {
@@ -59,7 +65,7 @@ function SETUP_tracked(){
 				}
 			}
 			
-			if (!padL || !padR) {
+			if (!padL || !padR || !padL.connected || !padR.connected) {
 				//console.log("tracked unavailable because THERE'S",gamepadsList.length,"PADS, BUT NO HANDEDNESS");
 				return false;
 			}
@@ -113,7 +119,7 @@ function SETUP_tracked(){
 		
 		getDominantPointing:function(){
 			
-			if (curMode == 1) return false;
+			if (curMode == 1 || !pads) return false;
 			
 			var domPad = pads[dominantHand];
 			
@@ -134,7 +140,7 @@ function SETUP_tracked(){
 		
 		getBothPinching:function(){
 			
-			if (curMode != 1) return false;
+			if (curMode != 1 || !pads) return false;
 			
 			if (!pads.Right.buttons[GRIPINDEX].pressed) return false;
 			if (!pads.Left.buttons[GRIPINDEX].pressed) return false;
@@ -168,7 +174,7 @@ function SETUP_tracked(){
 		
 		getDetonatorPressed:function(){
 			
-			if (curMode != 2) return false;//though I don't think this'll even be polled unless it's the right mode already...
+			if (curMode != 2 || !pads) return false;//though I don't think this'll even be polled unless it's the right mode already...
 			
 			return pads[dominantHand].buttons[GRIPINDEX].pressed;
 			

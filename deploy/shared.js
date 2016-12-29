@@ -27,22 +27,13 @@ function initControlSystems(){
 
 function detectControlSystemMode(){
 	
-	if (curControlSystem != controlSystems.tracked) {//Tracked is most preferable, so stop looking
-		
+	//Tracked is most preferable, so stop looking
+	if (curControlSystem != controlSystems.tracked && controlSystems.tracked.canDetermineAvailability()) {
 		if (controlSystems.tracked.isAvailable()) {
 			changeControlSystem(controlSystems.tracked);
-		} else {
-			
-			if (curControlSystem != controlSystems.leapmotion){
-				
-				if (controlSystems.leapmotion.isAvailable()) {
-					changeControlSystem(controlSystems.leapmotion);
-				}
-				
-			}
-			
+		} else if (curControlSystem != controlSystems.leapmotion && controlSystems.leapmotion.isAvailable()){
+			changeControlSystem(controlSystems.leapmotion);
 		}
-		
 	}
 	
 }

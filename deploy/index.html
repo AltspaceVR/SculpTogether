@@ -657,6 +657,10 @@
 				new THREE.MeshBasicMaterial({map:THREE.ImageUtils.loadTexture("clickMe.png")})
 			);
 			clickMe.visible = false;
+			clickMe.addEventListener('cursorup', function () {
+				clickMe.visible = false;
+				changeControlSystem(controlSystems.tracked);
+			});
 			clickMe.position.z = toWorldUnits(20);
 			clickMe.rotation.y = Math.PI;
 			var headJoint = skeletonInfo.getJoint('Head');
@@ -742,15 +746,27 @@
 			});
 			
 			
-			var firstExpectTracked = true;
-			var expectTracked = false;
-			myPrefsServer.child("expectTracked").on("value",function(snapshot){
-				if (firstExpectTracked) {
-					console.log("discarding first expectTracked, because it's either leftover or false anyway");
-					firstExpectTracked = false;
+			var firstPopupControlSystem = true;
+			var popupControlSystem;
+			myPrefsServer.child("popupControlSystem").on("value",function(snapshot){
+				if (firstPopupControlSystem) {
+					console.log("discarding first control system, because it's either leftover or false anyway");
+					firstPopupControlSystem = false;
 				} else {
-					expectTracked = snapshot.val();
-					console.log("new expectTracked:",expectTracked);
+					popupControlSystem = snapshot.val();
+					switch (popupControlSystem) {
+						case "leapmotion":
+							changeControlSystem(controlSystems.leapmotion);
+							break;
+						case "cursor":
+							changeControlSystem(controlSystems.cursor);
+							break;
+						case "tracked":
+							//The tracked control system is enabled when the user clicks on clickMe
+							clickMe.visible = true;
+							break;
+					}
+					console.log("new popupControlSystem:",popupControlSystem);
 				}
 			});
 			
@@ -825,8 +841,6 @@
 				
 				
 				
-				
-				clickMe.visible = (expectTracked && (curControlSystem != controlSystems.tracked) );
 				
 				
 				
